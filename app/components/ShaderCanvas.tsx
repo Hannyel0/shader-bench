@@ -55,6 +55,7 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
   const frameCountRef = useRef<number>(0);
   const lastFrameTimeRef = useRef<number>(0);
   const frameTimesRef = useRef<number[]>([]);
+  const gpuTimeSamplesRef = useRef<number[]>([]);
   const mouseRef = useRef<[number, number, number, number]>([0, 0, 0, 0]);
   const queryRef = useRef<WebGLQuery | null>(null);
 
@@ -203,32 +204,89 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
     lastFrameTimeRef.current = startTimeRef.current;
     frameTimesRef.current = [];
 
+    // Simplified VSync detection
+    let rafTimestamps: number[] = [];
+
+    const detectRefreshRate = (timestamp: number) => {
+      rafTimestamps.push(timestamp);
+      if (rafTimestamps.length >= 10) {
+        const intervals = rafTimestamps.slice(1).map((t, i) => t - rafTimestamps[i]);
+        const avgInterval = intervals.reduce((a, b) => a + b) / intervals.length;
+        const detectedRefreshRate = Math.round(1000 / avgInterval);
+        (gl as any).__refreshRate = detectedRefreshRate;
+        return; // Stop after detection
+      }
+      requestAnimationFrame(detectRefreshRate);
+    };
+
+    requestAnimationFrame(detectRefreshRate);
+
     return true;
   }, [fragmentShader, width, height, compileShader]);
 
+  // Validation diagnostic function
+  const validateMetrics = useCallback(() => {
+    const gl = glRef.current;
+    if (!gl) return;
+    
+    console.group('Performance Validation');
+    console.log('RAF Interval:', lastFrameTimeRef.current);
+    console.log('GPU Time:', (uniformsRef.current as any)?.lastGpuTime);
+    console.log('Refresh Rate:', (gl as any).__refreshRate);
+    console.log('Frame Times:', frameTimesRef.current.slice(-5));
+    console.groupEnd();
+  }, []);
+
   const calculateMetrics = useCallback(
-    (currentTime: number, frameTimes: number[]): PerformanceMetrics => {
+    (currentTime: number, frameTimes: number[], gpuTimeSamples: number[]): PerformanceMetrics => {
       const frameTime = currentTime - lastFrameTimeRef.current;
       frameTimes.push(frameTime);
 
       // Keep only last 120 frames for rolling average
       if (frameTimes.length > 120) frameTimes.shift();
 
-      const avgFrameTime =
-        frameTimes.reduce((sum, t) => sum + t, 0) / frameTimes.length;
-      const fps = 1000 / avgFrameTime;
+      // Calculate RAF-based metrics
+      const avgFrameTime = frameTimes.reduce((sum, t) => sum + t, 0) / frameTimes.length;
+      const rafFps = 1000 / avgFrameTime;
       const minFrameTime = Math.min(...frameTimes);
       const maxFrameTime = Math.max(...frameTimes);
-      const droppedFrames = frameTimes.filter((t) => t > 16.67 * 1.5).length;
+      
+      // Detect actual frame drops based on RAF timing
+      const targetFrameTime = 1000 / 60; // 16.67ms for 60 FPS
+      const droppedFrames = frameTimes.filter(
+        t => t > targetFrameTime * 1.5 // 50% threshold
+      ).length;
+
+      // Calculate GPU-based metrics if available
+      let gpuFps = rafFps; // Default to RAF-based FPS
+      let reportedGpuTime: number | undefined = undefined;
+
+      if (gpuTimeSamples.length > 0) {
+        // Keep only last 30 GPU samples
+        if (gpuTimeSamples.length > 30) gpuTimeSamples.shift();
+        
+        // Use median GPU time to filter outliers
+        const sortedGpuTimes = [...gpuTimeSamples].sort((a, b) => a - b);
+        const medianGpuTime = sortedGpuTimes[Math.floor(sortedGpuTimes.length / 2)];
+        
+        gpuFps = 1000 / medianGpuTime;
+        reportedGpuTime = medianGpuTime;
+      }
+
+      // Use GPU FPS if available and reasonable (within 2x of RAF FPS)
+      const finalFps = reportedGpuTime && Math.abs(gpuFps - rafFps) < rafFps * 2 
+        ? gpuFps 
+        : rafFps;
 
       return {
-        fps: Math.round(fps * 100) / 100,
+        fps: Math.round(finalFps * 100) / 100,
         frameTime: Math.round(frameTime * 100) / 100,
         avgFrameTime: Math.round(avgFrameTime * 100) / 100,
         minFrameTime: Math.round(minFrameTime * 100) / 100,
         maxFrameTime: Math.round(maxFrameTime * 100) / 100,
         droppedFrames,
         totalFrames: frameCountRef.current,
+        gpuTime: reportedGpuTime,
         resolution: { width, height },
         pixelCount: width * height,
       };
@@ -264,15 +322,52 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
         );
       }
 
-      // Render
+      // Render viewport
       gl.viewport(0, 0, width, height);
+
+      // GPU timing implementation
+      const ext = gl.getExtension('EXT_disjoint_timer_query_webgl2');
+
+      if (ext && queryRef.current) {
+        // Check if previous query result is available (non-blocking)
+        const queryAvailable = gl.getQueryParameter(
+          queryRef.current,
+          gl.QUERY_RESULT_AVAILABLE
+        );
+        
+        if (queryAvailable) {
+          const gpuTimeNs = gl.getQueryParameter(
+            queryRef.current,
+            gl.QUERY_RESULT
+          );
+          const gpuTimeMs = gpuTimeNs / 1_000_000; // Convert nanoseconds to milliseconds
+          
+          // Store GPU sample (only if reasonable - filter extreme outliers)
+          if (gpuTimeMs > 0 && gpuTimeMs < 1000) {
+            gpuTimeSamplesRef.current.push(gpuTimeMs);
+          }
+        }
+        
+        // Start timing this frame's GPU work
+        gl.beginQuery(ext.TIME_ELAPSED_EXT, queryRef.current);
+      }
+
+      // Execute draw call
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+      if (ext && queryRef.current) {
+        gl.endQuery(ext.TIME_ELAPSED_EXT);
+      }
 
       frameCountRef.current++;
 
-      // Update performance metrics every 10 frames
+      // Update performance metrics every 10 frames to prevent React render storms
       if (frameCountRef.current % 10 === 0 && onPerformanceUpdate) {
-        const metrics = calculateMetrics(currentTime, frameTimesRef.current);
+        const metrics = calculateMetrics(
+          currentTime, 
+          frameTimesRef.current,
+          gpuTimeSamplesRef.current
+        );
         onPerformanceUpdate(metrics);
       }
 
@@ -290,6 +385,11 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
     // Expose resize function to parent
     if (onResize) {
       onResize(resizeCanvas);
+    }
+
+    // Expose validateMetrics for debugging (accessible via browser console)
+    if (typeof window !== 'undefined') {
+      (window as any).__shaderValidateMetrics = validateMetrics;
     }
 
     // Mouse tracking
@@ -326,8 +426,13 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
       if (gl && programRef.current) {
         gl.deleteProgram(programRef.current);
       }
+
+      // Cleanup window reference
+      if (typeof window !== 'undefined') {
+        delete (window as any).__shaderValidateMetrics;
+      }
     };
-  }, [fragmentShader, width, height]);
+  }, [fragmentShader, width, height, validateMetrics]);
 
   return (
     <canvas
