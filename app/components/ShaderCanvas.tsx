@@ -8,6 +8,8 @@ interface ShaderCanvasProps {
   height?: number;
   onPerformanceUpdate?: (metrics: PerformanceMetrics) => void;
   onResize?: (resizeFn: (w: number, h: number) => void) => void;
+  paused?: boolean;
+  pausedTime?: number;
   className?: string;
 }
 
@@ -39,6 +41,8 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
   height = 600,
   onPerformanceUpdate,
   onResize,
+  paused = false,
+  pausedTime = 0,
   className = "",
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -263,8 +267,8 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
 
       if (!gl || !uniforms) return;
 
-      const elapsedTime = (currentTime - startTimeRef.current) / 1000;
-      const deltaTime = (currentTime - lastFrameTimeRef.current) / 1000;
+      const elapsedTime = paused ? (pausedTime ?? 0) : (currentTime - startTimeRef.current) / 1000;
+      const deltaTime = paused ? 0 : (currentTime - lastFrameTimeRef.current) / 1000;
 
       // Update uniforms
       if (uniforms.iTime) gl.uniform1f(uniforms.iTime, elapsedTime);
@@ -299,7 +303,7 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
       lastFrameTimeRef.current = currentTime;
       animationFrameRef.current = requestAnimationFrame(render);
     },
-    [width, height, onPerformanceUpdate, calculateMetrics]
+    [width, height, onPerformanceUpdate, calculateMetrics, paused, pausedTime]
   );
 
   useEffect(() => {

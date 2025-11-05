@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from "react";
 import { ShaderViewer, ShaderDefinition } from "./ShaderViewer";
-import { PerformanceMetrics } from "./ShaderCanvas";
+import { ShaderCanvas, PerformanceMetrics } from "./ShaderCanvas";
 
 interface ShaderGalleryProps {
   shaders: ShaderDefinition[];
@@ -35,6 +35,7 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
   );
   const [sortBy, setSortBy] = useState<"name" | "fps" | "frameTime">("name");
   const [filterTag, setFilterTag] = useState<string>("");
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
   const handleMetricsCapture = useCallback(
     (shaderName: string, metrics: PerformanceMetrics) => {
@@ -199,11 +200,28 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
               <div
                 key={shader.name}
                 className={`shader-card ${isComparing ? "comparing" : ""}`}
+                onClick={() => setSelectedShader(shader)}
+                onMouseEnter={() => setHoveredCard(shader.name)}
+                onMouseLeave={() => setHoveredCard(null)}
+                style={{ cursor: 'pointer' }}
               >
                 <div className="shader-thumbnail">
-                  <div className="shader-preview">
-                    {shader.name.slice(0, 2).toUpperCase()}
-                  </div>
+                  {hoveredCard === shader.name ? (
+                    <div style={{ width: '100%', height: '100%' }}>
+                      <ShaderCanvas
+                        fragmentShader={shader.fragmentShader}
+                        width={300}
+                        height={200}
+                        className="shader-preview-canvas"
+                      />
+                    </div>
+                  ) : (
+                    <div className="shader-preview-placeholder">
+                      <div className="shader-preview-text">
+                        {shader.name.slice(0, 2).toUpperCase()}
+                      </div>
+                    </div>
+                  )}
                   {benchmark && (
                     <div className="quick-stats">
                       <span className="fps">
@@ -231,11 +249,11 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
                 </div>
 
                 <div className="shader-card-actions">
-                  <button onClick={() => setSelectedShader(shader)}>
-                    👁️ View
-                  </button>
                   <button
-                    onClick={() => toggleCompare(shader)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleCompare(shader);
+                    }}
                     className={isComparing ? "active" : ""}
                     disabled={!isComparing && compareShaders.length >= 4}
                   >
@@ -522,9 +540,26 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
           display: flex;
           align-items: center;
           justify-content: center;
+          overflow: hidden;
         }
 
-        .shader-preview {
+        .shader-preview-canvas {
+          display: block;
+          width: 100%;
+          height: 100%;
+          image-rendering: auto;
+        }
+
+        .shader-preview-placeholder {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+        }
+
+        .shader-preview-text {
           font-size: 64px;
           font-weight: bold;
           color: #333;
