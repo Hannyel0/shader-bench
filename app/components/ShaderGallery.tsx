@@ -559,14 +559,14 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
               >
                 {/* Thumbnail */}
                 <div
-                  className="relative h-48 bg-black"
+                  className="relative aspect-video bg-black"
                   onClick={() => setSelectedShader(shader)}
                 >
                   {hoveredCard === shader.name ? (
                     <ShaderCanvas
                       fragmentShader={shader.fragmentShader}
-                      width={300}
-                      height={200}
+                      width={400}
+                      height={225}
                       className="w-full h-full"
                     />
                   ) : (
