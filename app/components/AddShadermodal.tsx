@@ -34,7 +34,8 @@ interface AddShaderModalProps {
   editShader?: ShaderDefinition & { id?: string };
 }
 
-const SHADERTOY_TEMPLATE = `void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+const SHADERTOY_TEMPLATE = `// Simple gradient shader
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     // Normalized pixel coordinates (from 0 to 1)
     vec2 uv = fragCoord / iResolution.xy;
 
@@ -43,6 +44,24 @@ const SHADERTOY_TEMPLATE = `void mainImage(out vec4 fragColor, in vec2 fragCoord
 
     // Output to screen
     fragColor = vec4(col, 1.0);
+}`;
+
+const ADVANCED_TEMPLATE = `// Example with globals and helper functions
+#define PI 3.14159265359
+
+vec3 globalColor;
+
+float hash(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * 0.13);
+    p3 += dot(p3, p3.yzx + 3.333);
+    return fract((p3.x + p3.y) * p3.z);
+}
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+    vec2 uv = fragCoord / iResolution.xy;
+    float n = hash(uv + iTime);
+    globalColor = vec3(n);
+    fragColor = vec4(globalColor, 1.0);
 }`;
 
 export const AddShaderModal: React.FC<AddShaderModalProps> = ({
@@ -152,17 +171,13 @@ export const AddShaderModal: React.FC<AddShaderModalProps> = ({
     }
   };
 
-  const insertTemplate = () => {
-    setFragmentShader(SHADERTOY_TEMPLATE);
-  };
-
   const handlePreviewMetrics = useCallback((metrics: PerformanceMetrics) => {
     setPreviewMetrics(metrics);
   }, []);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto p-0">
+      <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto overflow-x-hidden p-0">
         <DialogHeader className="p-6 pb-4">
           <DialogTitle className="text-2xl">
             {editShader ? "Edit Shader" : "Add New Shader"}
@@ -223,20 +238,29 @@ export const AddShaderModal: React.FC<AddShaderModalProps> = ({
 
           {/* Shader Code */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <Label htmlFor="fragmentShader" className="text-base">
                 <FileCode className="w-4 h-4 mr-1 inline" />
                 Fragment Shader Code <span className="text-destructive">*</span>
               </Label>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={insertTemplate}
+                  onClick={() => setFragmentShader(SHADERTOY_TEMPLATE)}
                 >
                   <ClipboardCopy className="w-4 h-4 mr-2" />
-                  Insert Template
+                  Basic Template
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFragmentShader(ADVANCED_TEMPLATE)}
+                >
+                  <ClipboardCopy className="w-4 h-4 mr-2" />
+                  Advanced Template
                 </Button>
                 <Button
                   type="button"
@@ -307,9 +331,17 @@ export const AddShaderModal: React.FC<AddShaderModalProps> = ({
                   )}
                 </div>
                 {validation.error && (
-                  <p className="text-sm font-mono text-destructive pl-7">
-                    {validation.error}
-                  </p>
+                  <div className="pl-7 space-y-2">
+                    <p className="text-sm font-semibold text-destructive">
+                      Compilation Error:
+                    </p>
+                    <pre className="text-xs font-mono text-destructive bg-destructive/5 p-3 rounded border border-destructive/20 overflow-x-auto">
+                      {validation.error}
+                    </pre>
+                    <p className="text-xs text-muted-foreground">
+                      💡 Tip: Ensure your shader has a <code className="px-1 py-0.5 bg-muted rounded">mainImage()</code> function and uses standard Shadertoy uniforms.
+                    </p>
+                  </div>
                 )}
                 {validation.warnings && validation.warnings.length > 0 && (
                   <div className="pl-7 space-y-1">

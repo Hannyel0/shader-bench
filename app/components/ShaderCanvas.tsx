@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useCallback } from "react";
+import { ShaderCompat } from "../utils/ShaderCompact";
 
 interface ShaderCanvasProps {
   fragmentShader: string;
@@ -96,31 +97,6 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
     }
   `;
 
-  // Wrap user fragment shader with Shadertoy compatibility
-  const wrapFragmentShader = (userShader: string): string => {
-    // Remove any existing #version directive
-    const cleanShader = userShader.replace(/#version\s+\d+\s+es/g, "");
-
-    return `#version 300 es
-    precision highp float;
-    
-    uniform vec3 iResolution;
-    uniform float iTime;
-    uniform float iTimeDelta;
-    uniform int iFrame;
-    uniform vec4 iMouse;
-    uniform vec4 iDate;
-    
-    out vec4 fragColor;
-    
-    ${cleanShader}
-    
-    void main() {
-      mainImage(fragColor, gl_FragCoord.xy);
-    }
-    `;
-  };
-
   const compileShader = useCallback(
     (
       gl: WebGL2RenderingContext,
@@ -177,7 +153,7 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
     );
     const compiledFragmentShader = compileShader(
       gl,
-      wrapFragmentShader(fragmentShader),
+      ShaderCompat.convertShadertoy(fragmentShader),
       gl.FRAGMENT_SHADER
     );
 

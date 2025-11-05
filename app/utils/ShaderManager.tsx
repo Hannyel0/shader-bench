@@ -8,6 +8,7 @@
  */
 
 import { ShaderDefinition } from "../components/ShaderViewer";
+import { ShaderCompat } from "./ShaderCompact";
 
 export interface StoredShader extends ShaderDefinition {
   id: string;
@@ -94,89 +95,19 @@ class ShaderManagerClass {
   async validateShader(
     fragmentShader: string
   ): Promise<ShaderValidationResult> {
-    try {
-      // Create temporary canvas for validation
-      const canvas = document.createElement("canvas");
-      const gl = canvas.getContext("webgl2");
-
-      if (!gl) {
-        return {
-          valid: false,
-          error: "WebGL2 not available for validation",
-        };
-      }
-
-      // Wrap shader with Shadertoy compatibility
-      const wrappedShader = this.wrapFragmentShader(fragmentShader);
-
-      // Try to compile
-      const shader = gl.createShader(gl.FRAGMENT_SHADER);
-      if (!shader) {
-        return {
-          valid: false,
-          error: "Failed to create shader object",
-        };
-      }
-
-      gl.shaderSource(shader, wrappedShader);
-      gl.compileShader(shader);
-
-      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        const error = gl.getShaderInfoLog(shader);
-        gl.deleteShader(shader);
-        return {
-          valid: false,
-          error: error || "Shader compilation failed",
-        };
-      }
-
-      gl.deleteShader(shader);
-
-      // Check for common warnings
-      const warnings: string[] = [];
-      if (!fragmentShader.includes("mainImage")) {
-        warnings.push(
-          "No mainImage function found - shader may not render correctly"
-        );
-      }
-
-      return {
-        valid: true,
-        warnings: warnings.length > 0 ? warnings : undefined,
-      };
-    } catch (error) {
-      return {
-        valid: false,
-        error:
-          error instanceof Error ? error.message : "Unknown validation error",
-      };
-    }
+    const result = await ShaderCompat.validateShader(fragmentShader);
+    return {
+      valid: result.valid,
+      error: result.error,
+      warnings: result.warnings,
+    };
   }
 
   /**
    * Wrap fragment shader with Shadertoy compatibility
    */
   private wrapFragmentShader(userShader: string): string {
-    const cleanShader = userShader.replace(/#version\s+\d+\s+es/g, "");
-
-    return `#version 300 es
-    precision highp float;
-    
-    uniform vec3 iResolution;
-    uniform float iTime;
-    uniform float iTimeDelta;
-    uniform int iFrame;
-    uniform vec4 iMouse;
-    uniform vec4 iDate;
-    
-    out vec4 fragColor;
-    
-    ${cleanShader}
-    
-    void main() {
-      mainImage(fragColor, gl_FragCoord.xy);
-    }
-    `;
+    return ShaderCompat.convertShadertoy(userShader);
   }
 
   /**

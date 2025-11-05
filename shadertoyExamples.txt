@@ -1,0 +1,483 @@
+Example 1:
+
+
+# define res iResolution.xy
+
+vec3 Gcp;
+int Gid;
+
+float hash12(vec2 p)
+{
+	vec3 p3  = fract(vec3(p.xyx) * .1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+}
+
+float hash(ivec3 p)
+{
+    uint n = uint(p.x) * 73856093u ^ uint(p.y) * 19349663u ^ uint(p.z) * 83492791u;
+    n = (n << 13) ^ n;
+    n = n * (n * n * 15731u + 789221u) + 1376312589u;
+    return float(n & 0x0fffffffu) / float(0x0fffffff);
+}
+
+float noise( in vec3 x )
+{
+    ivec3 i = ivec3(floor(x));
+    vec3 f = fract(x);
+    f = f*f*(3.0-2.0*f);
+	
+    return mix(mix(mix( hash(i+ivec3(0,0,0)), 
+                        hash(i+ivec3(1,0,0)),f.x),
+                   mix( hash(i+ivec3(0,1,0)), 
+                        hash(i+ivec3(1,1,0)),f.x),f.y),
+               mix(mix( hash(i+ivec3(0,0,1)), 
+                        hash(i+ivec3(1,0,1)),f.x),
+                   mix( hash(i+ivec3(0,1,1)), 
+                        hash(i+ivec3(1,1,1)),f.x),f.y),f.z);
+}
+
+float fbm(vec3 p, int o) {
+    p += vec3(60.43012, 48.49302, 13.43904);
+    float r = 0.0;
+    float a = 1.0;
+    float f = 0.5;
+    
+    for(int i = 0; i < o; i++) {
+        r += f * noise(a * p);
+        
+        a *= 1.8;
+        f *= 0.5;
+    }
+    
+    return r;
+}
+
+float sdRoundBox( vec3 p, vec3 b, float r )
+{
+  vec3 q = abs(p) - b + r;
+  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0) - r;
+}
+
+float sdKeys(vec3 p, out int id) {
+    vec3 q = p;
+    float s = 1.0;
+    vec2 cell = floor(p.xz / s);
+    p.xz = mod(p.xz, s) - 0.5 * s;
+    
+    float h = hash12(cell);
+    float c = cos(h * 50.0 + iTime * 7.0);
+    p.y -= 0.05 * min(c * c * c * c * c, 0.0);
+    
+    float d1 = sdRoundBox(p, vec3(0.4, 0.05, 0.4), 0.01);
+    float d2 = sdRoundBox(p, vec3(0.41, 0.03, 0.41), 0.01);
+    d1 = max(d1, -(p.y - 0.028));
+    d1 = max(d1, -d2);
+    
+    p = q;
+    float d3 = p.y - -0.02;
+    d3 = min(d3, p.y - -0.06);
+    d3 = max(d3, -(d1 - 0.1));
+    
+    float d = d1;
+    Gid = 0;
+    
+    if(d2 < d) { d = d2; id = 1; }
+    if(d3 < d) { d = d3; id = 2; }
+    
+    return d;
+}
+
+float map(vec3 p) {
+    float n = p.x - Gcp.x;
+    p.y += 0.01 * n * n;
+
+    int id1;
+    int id2;
+    
+    float d1 = sdKeys(p, id1);
+    
+    p.y = -p.y + 3.8;
+    float d2 = sdKeys(p, id2);
+    
+    float d = d1;
+    Gid = id1;
+    if(d2 < d) { d = d2; Gid = id2; }
+    
+    return d;
+}
+
+vec3 getNormal( in vec3 pos )
+{
+    vec2 e = vec2(1.0,-1.0)*0.5773;
+    const float eps = 0.001;
+    return normalize( e.xyy*map( pos + e.xyy*eps ) + 
+					  e.yyx*map( pos + e.yyx*eps ) + 
+					  e.yxy*map( pos + e.yxy*eps ) + 
+					  e.xxx*map( pos + e.xxx*eps ) );
+}
+
+float softShadow(vec3 ro, vec3 rd, float k) {
+    float re = 1.0;
+    float t = 0.01;
+    for (int i = 0; i < 50; i++) {
+        float h = map(ro + rd * t);
+        if (h < 0.001) return 0.0;
+        re = min(re, k * h / t);
+        t += h;
+        if (t > 10.0) break;
+    }
+    return tanh(re);
+}
+
+float calcAO(vec3 p, vec3 n) {
+    float ao = 0.0;
+    float sca = 1.0;
+    for (int i = 1; i <= 6; i++) {
+        float h = 0.1 * float(i);
+        float d = map(p + n * h);
+        ao += (h - d) * sca;
+        sca *= 0.94;
+    }
+    return clamp(1.0 - ao, 0.0, 1.0);
+}
+
+vec3 tex3D( sampler2D tex, in vec3 p, in vec3 n ){
+  
+    n = abs(n)/1.732051;
+    n = max((abs(n) - 0.2)*7., 0.001);
+    n /= (n.x + n.y + n.z );  
+    
+	return ( texture(tex, p.yz)*n.x + 
+             texture(tex, p.zx)*n.y + 
+             texture(tex, p.xy)*n.z   ).xyz;
+}
+
+float bumpSurf(vec3 p, vec3 n) {
+    if(Gid == 1) return 0.0;
+    if(Gid == 2) return 0.0;
+    
+    float k = fbm(p * 5.0, 8);
+    
+    return k;
+}
+
+vec3 doBumpMap(in vec3 p, in vec3 nor, float bumpfactor){
+    
+    const vec2 e = vec2(0.001, 0);
+    float ref = bumpSurf(p, nor);                 
+    vec3 grad = (vec3(bumpSurf(p - e.xyy, nor),
+                      bumpSurf(p - e.yxy, nor),
+                      bumpSurf(p - e.yyx, nor) )-ref)/e.x;                     
+          
+    grad -= nor*dot(nor, grad);          
+                      
+    return normalize( nor + grad*bumpfactor );
+	
+}
+
+void mainImage( out vec4 O, in vec2 I )
+{
+    vec2 p = 1.3 * (I - 0.5 * res) / res.y;
+    
+    float time = 0.3 * (50.49 + iTime);
+    vec3 camPos = vec3(0.0, 0.5, iTime);
+    vec3 camDir = normalize(vec3(0.0, -0.05, 1.0));
+    
+    Gcp = camPos;
+    
+    float fov = radians(45.0);
+    vec3 worldUp = vec3(0.0, 1.0, 0.0);
+    vec3 camRight = normalize(cross(camDir, worldUp));
+    vec3 camUp = cross(camRight, camDir);
+
+    float t = tan(fov * 0.5);
+    vec3 rayDir = normalize(camDir + p.x * camRight * t + p.y * camUp * t);
+    
+    const float factor = 0.9;
+    const int maxSteps = 200;
+    bool hit; 
+    int n = 0;
+    float td = 0.0;
+    for(int i = 0; i < maxSteps; i++) {  
+        float d = map(camPos + rayDir * td) * factor;
+
+        if(d <= 0.02) { hit = true; break; }
+
+        n++; td += d;
+        if(length(rayDir * td) > 60.0) { td = 60.0; break; }
+    }
+    
+    vec3 col;
+    
+    if(hit) {
+        vec3 hitPoint = camPos + rayDir * td;        
+        vec3 normal1 = getNormal(hitPoint);
+        vec3 normal = doBumpMap(hitPoint, normal1, 0.01);
+        
+        vec3 color;
+        if(Gid == 0) color = vec3(0.1, 0.1, 0.16) * 0.5;
+        if(Gid == 1) color = vec3(1.0, 1.0, 1.0);
+        if(Gid == 2) color = vec3(0.1, 0.1, 0.1) * 0.1;
+        
+        vec3 lightDir = normalize(vec3(0.9, 1.0, -0.3));
+        vec3 viewDir = -rayDir;
+        
+        vec3 N = normalize(normal);
+        vec3 L = normalize(lightDir);
+        vec3 V = normalize(viewDir);
+        vec3 H = normalize(L + V);
+
+        float diffuse = max(dot(N, L), 0.0);
+        float specular = pow(max(dot(N, H), 0.0), 50.0);
+        float fresnel = pow(1.0 - max(dot(V, N), 0.0), 10.0);
+        float shadow = softShadow(hitPoint + normal * 0.1, lightDir, 48.0);
+        float light = diffuse + specular * 2.0 + fresnel * 0.5;
+        light = mix(light, light * shadow, 0.1);
+
+        float AO = calcAO(hitPoint, normal);      
+        
+        col = color * light;
+        col = mix(col, col * AO, 0.8);
+        
+        col = mix(vec3(0.5), col, exp(-0.001 * td * td));
+    }
+    else {
+        col = mix(vec3(0.5), col, exp(-0.001 * td * td));
+    }
+    
+    col *= 0.8;
+    
+    // Trying to get into the habbit of gamma.
+    col = pow(col, vec3(1) / 2.2);
+    
+    O = vec4(col, 1.0);
+}
+
+
+Example 2:
+
+#define USE_LIGHT 0
+
+mat3 m = mat3( 0.00,  0.80,  0.60,
+              -0.80,  0.36, -0.48,
+              -0.60, -0.48,  0.64);
+
+float hash(float n)
+{
+    return fract(sin(n) * 43758.5453);
+}
+
+///
+/// Noise function
+///
+float noise(in vec3 x)
+{
+    vec3 p = floor(x);
+    vec3 f = fract(x);
+    
+    f = f * f * (3.0 - 2.0 * f);
+    
+    float n = p.x + p.y * 57.0 + 113.0 * p.z;
+    
+    float res = mix(mix(mix(hash(n +   0.0), hash(n +   1.0), f.x),
+                        mix(hash(n +  57.0), hash(n +  58.0), f.x), f.y),
+                    mix(mix(hash(n + 113.0), hash(n + 114.0), f.x),
+                        mix(hash(n + 170.0), hash(n + 171.0), f.x), f.y), f.z);
+    return res;
+}
+
+///
+/// Fractal Brownian motion.
+///
+/// Refer to:
+/// EN: https://thebookofshaders.com/13/
+/// JP: https://thebookofshaders.com/13/?lan=jp
+///
+float fbm(vec3 p)
+{
+    float f;
+    f  = 0.5000 * noise(p); p = m * p * 2.02;
+    f += 0.2500 * noise(p); p = m * p * 2.03;
+    f += 0.1250 * noise(p);
+    return f;
+}
+
+//////////////////////////////////////////////////
+
+///
+/// Sphere distance function.
+///
+/// But this function return inverse value.
+/// Normal dist function is like below.
+/// 
+/// return length(pos) - 0.1;
+///
+/// Because this function is used for density.
+///
+float scene(in vec3 pos)
+{
+    return 0.1 - length(pos) * 0.05 + fbm(pos * 0.3);
+}
+
+///
+/// Get normal of the cloud.
+///
+vec3 getNormal(in vec3 p)
+{
+    const float e = 0.01;
+    return normalize(vec3(scene(vec3(p.x + e, p.y, p.z)) - scene(vec3(p.x - e, p.y, p.z)),
+                          scene(vec3(p.x, p.y + e, p.z)) - scene(vec3(p.x, p.y - e, p.z)),
+                          scene(vec3(p.x, p.y, p.z + e)) - scene(vec3(p.x, p.y, p.z - e))));
+}
+
+///
+/// Create a camera pose control matrix.
+///
+mat3 camera(vec3 ro, vec3 ta)
+{
+    vec3 cw = normalize(ta - ro);
+    vec3 cp = vec3(0.0, 1.0, 0.0);
+    vec3 cu = cross(cw, cp);
+    vec3 cv = cross(cu, cw);
+    return mat3(cu, cv, cw);
+}
+
+///
+/// Main function.
+///
+void mainImage(out vec4 fragColor, in vec2 fragCoord)
+{
+    vec2 uv = (fragCoord.xy * 2.0 - iResolution.xy) / min(iResolution.x, iResolution.y);
+    
+    vec2 mo = vec2(iTime * 0.1, cos(iTime * 0.25) * 3.0);
+    
+    // Camera
+    float camDist = 25.0;
+    
+    // target
+    vec3 ta = vec3(0.0, 1.0, 0.0);
+    
+    // Ray origin
+    //vec3 ori = vec3(sin(iTime) * camDist, 0, cos(iTime) * camDist);
+    vec3 ro = camDist * normalize(vec3(cos(2.75 - 3.0 * mo.x), 0.7 - 1.0 * (mo.y - 1.0), sin(2.75 - 3.0 * mo.x)));
+    
+    float targetDepth = 1.3;
+    
+    // Camera pose.
+    mat3 c = camera(ro, ta);
+    vec3 dir = c * normalize(vec3(uv, targetDepth));
+    
+    // For raymarching const values.
+    const int sampleCount = 64;
+    const int sampleLightCount = 6;
+    const float eps = 0.01;
+    
+    // Raymarching step settings.
+    float zMax = 40.0;
+    float zstep = zMax / float(sampleCount);
+    
+    float zMaxl = 20.0;
+    float zstepl = zMaxl / float(sampleLightCount);
+    
+    // Easy access to the ray origin
+    vec3 p = ro;
+    
+    // Transmittance
+    float T = 1.0;
+    
+    // Substantially transparency parameter.
+    float absorption = 100.0;
+    
+    // Light Direction
+    vec3 sun_direction = normalize(vec3(1.0, 0.0, 0.0));
+    
+    // Result of culcration
+    vec4 color = vec4(0.0);
+    
+    for (int i = 0; i < sampleCount; i++)
+    {
+        // Using distance function for density.
+        // So the function not normal value.
+        // Please check it out on the function comment.
+        float density = scene(p);
+        
+        // The density over 0.0 then start cloud ray marching.
+        // Why? because the function will return negative value normally.
+        // But if ray is into the cloud, the function will return positive value.
+        if (density > 0.0)
+        {
+            // Let's start cloud ray marching!
+            
+            // why density sub by sampleCount?
+            // This mean integral for each sampling points.
+            float tmp = density / float(sampleCount);
+            
+            T *= 1.0 - (tmp * absorption);
+            
+            // Return if transmittance under 0.01. 
+            // Because the ray is almost absorbed.
+            if (T <= 0.01)
+            {
+                break;
+            }
+            
+            #if USE_LIGHT == 1
+            // Light scattering
+            
+            // Transmittance for Light
+            float Tl = 1.0;
+            
+            // Start light scattering with raymarching.
+            
+            // Raymarching position for the light.
+            vec3 lp = p;
+            
+            // Iteration of sampling light.
+            for (int j = 0; j < sampleLightCount; j++)
+            {
+                float densityLight = scene(lp);
+                
+                // If densityLight is over 0.0, the ray is stil in the cloud.
+                if (densityLight > 0.0)
+                {
+                    float tmpl = densityLight / float(sampleCount);
+                    Tl *= 1.0 - (tmpl * absorption);
+                }
+                
+                if (Tl <= 0.01)
+                {
+                    break;
+                }
+                
+                // Step to next position.
+                lp += sun_direction * zstepl;
+            }
+            #endif
+            
+            // Add ambient + light scattering color
+            float opaity = 50.0;
+            float k = opaity * tmp * T;
+            vec4 cloudColor = vec4(1.0);
+            vec4 col1 = cloudColor * k;
+            
+            #if USE_LIGHT == 1
+            float opacityl = 30.0;
+            float kl = opacityl * tmp * T * Tl;
+            vec4 lightColor = vec4(1.0, 0.7, 0.9, 1.0);
+            vec4 col2 = lightColor * kl;
+            #else
+            vec4 col2 = vec4(0.0);
+            #endif
+            
+            color += col1 + col2;
+        }
+        
+        p += dir * zstep;
+    }
+    
+    vec3 bg = mix(vec3(0.3, 0.1, 0.8), vec3(0.7, 0.7, 1.0), 1.0 - (uv.y + 1.0) * 0.5);
+    color.rgb += bg;
+    
+	fragColor = color;
+}
