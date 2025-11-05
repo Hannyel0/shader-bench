@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { ShaderViewer, ShaderDefinition } from "./ShaderViewer";
 import { ShaderCanvas, PerformanceMetrics } from "./ShaderCanvas";
+import { AddShaderModal } from "./AddShadermodal";
+import { ShaderManager, StoredShader } from "../utils/ShaderManager";
+import { exampleShaders } from "../lib/ShaderLibrary";
 
 interface ShaderGalleryProps {
-  shaders: ShaderDefinition[];
   defaultView?: "grid" | "list" | "compare";
   width?: number;
   height?: number;
@@ -17,8 +19,12 @@ interface ShaderBenchmark {
   timestamp: number;
 }
 
+interface ExtendedShaderDefinition extends ShaderDefinition {
+  id?: string;
+  source: "builtin" | "user";
+}
+
 export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
-  shaders,
   defaultView = "grid",
   width = 600,
   height = 400,
@@ -26,16 +32,57 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
   const [viewMode, setViewMode] = useState<"grid" | "list" | "compare">(
     defaultView
   );
-  const [selectedShader, setSelectedShader] = useState<ShaderDefinition | null>(
-    null
-  );
-  const [compareShaders, setCompareShaders] = useState<ShaderDefinition[]>([]);
+  const [selectedShader, setSelectedShader] =
+    useState<ExtendedShaderDefinition | null>(null);
+  const [compareShaders, setCompareShaders] = useState<
+    ExtendedShaderDefinition[]
+  >([]);
   const [benchmarks, setBenchmarks] = useState<Map<string, ShaderBenchmark>>(
     new Map()
   );
   const [sortBy, setSortBy] = useState<"name" | "fps" | "frameTime">("name");
   const [filterTag, setFilterTag] = useState<string>("");
+  const [filterSource, setFilterSource] = useState<"all" | "builtin" | "user">(
+    "all"
+  );
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingShader, setEditingShader] = useState<
+    ExtendedShaderDefinition | undefined
+  >();
+  const [userShaders, setUserShaders] = useState<StoredShader[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Combined shaders list
+  const allShaders: ExtendedShaderDefinition[] = [
+    ...exampleShaders.map((s) => ({ ...s, source: "builtin" as const })),
+    ...userShaders.map((s) => ({ ...s, source: "user" as const })),
+  ];
+
+  // Initialize ShaderManager and load user shaders
+  useEffect(() => {
+    const initManager = async () => {
+      try {
+        await ShaderManager.init();
+        await loadUserShaders();
+      } catch (error) {
+        console.error("Failed to initialize ShaderManager:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initManager();
+  }, []);
+
+  const loadUserShaders = async () => {
+    try {
+      const shaders = await ShaderManager.getAllShaders();
+      setUserShaders(shaders);
+    } catch (error) {
+      console.error("Failed to load user shaders:", error);
+    }
+  };
 
   const handleMetricsCapture = useCallback(
     (shaderName: string, metrics: PerformanceMetrics) => {
@@ -52,7 +99,7 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
     []
   );
 
-  const toggleCompare = (shader: ShaderDefinition) => {
+  const toggleCompare = (shader: ExtendedShaderDefinition) => {
     setCompareShaders((prev) => {
       const exists = prev.find((s) => s.name === shader.name);
       if (exists) {
@@ -64,11 +111,187 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
     });
   };
 
-  const getFilteredAndSortedShaders = () => {
-    let filtered = shaders;
+  const handleAddShader = async (shader: ShaderDefinition) => {
+    try {
+      await ShaderManager.addShader(shader);
+      await loadUserShaders();
+      setIsAddModalOpen(false);
+    } catch (error) {
+      alert(
+        `Failed to add shader: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  };
 
+  const handleEditShader = (shader: ExtendedShaderDefinition) => {
+    if (shader.source === "builtin") {
+      alert(
+        "Built-in shaders cannot be edited. You can duplicate them as custom shaders instead."
+      );
+      return;
+    }
+    setEditingShader(shader);
+    setIsAddModalOpen(true);
+  };
+
+  const handleUpdateShader = async (updatedShader: ShaderDefinition) => {
+    if (!editingShader?.id) return;
+
+    try {
+      await ShaderManager.updateShader(editingShader.id, updatedShader);
+      await loadUserShaders();
+      setIsAddModalOpen(false);
+      setEditingShader(undefined);
+    } catch (error) {
+      alert(
+        `Failed to update shader: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  };
+
+  const handleDeleteShader = async (shader: ExtendedShaderDefinition) => {
+    if (shader.source === "builtin") {
+      alert("Built-in shaders cannot be deleted.");
+      return;
+    }
+
+    if (!shader.id) return;
+
+    if (!confirm(`Are you sure you want to delete "${shader.name}"?`)) {
+      return;
+    }
+
+    try {
+      await ShaderManager.deleteShader(shader.id);
+      await loadUserShaders();
+
+      // Clear if this shader was selected
+      if (selectedShader?.name === shader.name) {
+        setSelectedShader(null);
+      }
+    } catch (error) {
+      alert(
+        `Failed to delete shader: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  };
+
+  const handleDuplicateShader = async (shader: ExtendedShaderDefinition) => {
+    const newShader: ShaderDefinition = {
+      name: `${shader.name} (Copy)`,
+      author: shader.author,
+      description: shader.description,
+      fragmentShader: shader.fragmentShader,
+      tags: shader.tags,
+    };
+
+    try {
+      await ShaderManager.addShader(newShader);
+      await loadUserShaders();
+    } catch (error) {
+      alert(
+        `Failed to duplicate shader: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  };
+
+  const handleExportShaders = async () => {
+    try {
+      const jsonData = await ShaderManager.exportShaders();
+      const blob = new Blob([jsonData], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `my_shaders_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      alert(
+        `Failed to export shaders: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  };
+
+  const handleImportShaders = async () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const result = await ShaderManager.importShaders(text);
+
+        await loadUserShaders();
+
+        let message = `Successfully imported ${result.imported} shader(s).`;
+        if (result.errors.length > 0) {
+          message += `\n\nErrors:\n${result.errors.join("\n")}`;
+        }
+        alert(message);
+      } catch (error) {
+        alert(
+          `Failed to import shaders: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
+        );
+      }
+    };
+
+    input.click();
+  };
+
+  const handleClearUserShaders = async () => {
+    if (
+      !confirm(
+        "Are you sure you want to delete ALL custom shaders? This cannot be undone!"
+      )
+    ) {
+      return;
+    }
+
+    if (
+      !confirm("Really delete all custom shaders? This is your last chance!")
+    ) {
+      return;
+    }
+
+    try {
+      await ShaderManager.clearAll();
+      await loadUserShaders();
+    } catch (error) {
+      alert(
+        `Failed to clear shaders: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  };
+
+  const getFilteredAndSortedShaders = () => {
+    let filtered = allShaders;
+
+    // Filter by source
+    if (filterSource !== "all") {
+      filtered = filtered.filter((s) => s.source === filterSource);
+    }
+
+    // Filter by tag
     if (filterTag) {
-      filtered = shaders.filter((s) => s.tags?.includes(filterTag));
+      filtered = filtered.filter((s) => s.tags?.includes(filterTag));
     }
 
     return filtered.sort((a, b) => {
@@ -92,7 +315,7 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
   };
 
   const allTags = Array.from(
-    new Set(shaders.flatMap((s) => s.tags || []))
+    new Set(allShaders.flatMap((s) => s.tags || []))
   ).sort();
 
   const exportBenchmarks = () => {
@@ -110,7 +333,6 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
 
   const runBenchmarkSuite = async () => {
     console.log("Starting benchmark suite...");
-    // This would need more sophisticated implementation with controlled timing
     alert(
       "Benchmark suite would run each shader for 10 seconds and collect metrics"
     );
@@ -118,14 +340,61 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
 
   const filteredShaders = getFilteredAndSortedShaders();
 
+  if (isLoading) {
+    return (
+      <div className="shader-gallery loading">
+        <div className="loading-spinner">⏳ Loading ShaderManager...</div>
+        <style jsx>{`
+          .shader-gallery.loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            background: #0a0a0a;
+            border-radius: 12px;
+          }
+          .loading-spinner {
+            color: #00ff00;
+            font-size: 24px;
+            font-family: monospace;
+          }
+        `}</style>
+      </div>
+    );
+  }
+
   return (
     <div className="shader-gallery">
       <div className="gallery-header">
-        <h1>Shader Performance Testing Suite</h1>
-        <div className="gallery-stats">
-          <span>{shaders.length} shaders loaded</span>
-          <span>{benchmarks.size} benchmarked</span>
+        <div>
+          <h1>Shader Performance Testing Suite</h1>
+          <div className="gallery-stats">
+            <span className="stat-item">
+              <strong>{allShaders.length}</strong> total shaders
+            </span>
+            <span className="stat-separator">•</span>
+            <span className="stat-item">
+              <strong>{exampleShaders.length}</strong> built-in
+            </span>
+            <span className="stat-separator">•</span>
+            <span className="stat-item custom">
+              <strong>{userShaders.length}</strong> custom
+            </span>
+            <span className="stat-separator">•</span>
+            <span className="stat-item">
+              <strong>{benchmarks.size}</strong> benchmarked
+            </span>
+          </div>
         </div>
+        <button
+          className="add-shader-btn"
+          onClick={() => {
+            setEditingShader(undefined);
+            setIsAddModalOpen(true);
+          }}
+        >
+          ✨ Add Custom Shader
+        </button>
       </div>
 
       <div className="gallery-controls">
@@ -154,6 +423,18 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
         </div>
 
         <div className="control-group">
+          <label>Source:</label>
+          <select
+            value={filterSource}
+            onChange={(e) => setFilterSource(e.target.value as any)}
+          >
+            <option value="all">All Shaders</option>
+            <option value="builtin">Built-in Only</option>
+            <option value="user">Custom Only</option>
+          </select>
+        </div>
+
+        <div className="control-group">
           <label>Sort By:</label>
           <select
             value={sortBy}
@@ -171,7 +452,7 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
             value={filterTag}
             onChange={(e) => setFilterTag(e.target.value)}
           >
-            <option value="">All</option>
+            <option value="">All Tags</option>
             {allTags.map((tag) => (
               <option key={tag} value={tag}>
                 {tag}
@@ -181,10 +462,38 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
         </div>
 
         <div className="control-group actions">
-          <button onClick={runBenchmarkSuite}>🏃 Run Benchmark Suite</button>
-          <button onClick={exportBenchmarks} disabled={benchmarks.size === 0}>
-            💾 Export Results
+          <button
+            onClick={runBenchmarkSuite}
+            title="Run automated benchmark suite"
+          >
+            🏃 Benchmark
           </button>
+          <button
+            onClick={exportBenchmarks}
+            disabled={benchmarks.size === 0}
+            title="Export performance data"
+          >
+            💾 Export Data
+          </button>
+          <button onClick={handleImportShaders} title="Import custom shaders">
+            📥 Import
+          </button>
+          <button
+            onClick={handleExportShaders}
+            disabled={userShaders.length === 0}
+            title="Export custom shaders"
+          >
+            📤 Export
+          </button>
+          {userShaders.length > 0 && (
+            <button
+              onClick={handleClearUserShaders}
+              className="danger"
+              title="Delete all custom shaders"
+            >
+              🗑️ Clear Custom
+            </button>
+          )}
         </div>
       </div>
 
@@ -198,16 +507,19 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
 
             return (
               <div
-                key={shader.name}
-                className={`shader-card ${isComparing ? "comparing" : ""}`}
-                onClick={() => setSelectedShader(shader)}
+                key={`${shader.source}-${shader.id || shader.name}`}
+                className={`shader-card ${isComparing ? "comparing" : ""} ${
+                  shader.source
+                }`}
                 onMouseEnter={() => setHoveredCard(shader.name)}
                 onMouseLeave={() => setHoveredCard(null)}
-                style={{ cursor: 'pointer' }}
               >
-                <div className="shader-thumbnail">
+                <div
+                  className="shader-thumbnail"
+                  onClick={() => setSelectedShader(shader)}
+                >
                   {hoveredCard === shader.name ? (
-                    <div style={{ width: '100%', height: '100%' }}>
+                    <div style={{ width: "100%", height: "100%" }}>
                       <ShaderCanvas
                         fragmentShader={shader.fragmentShader}
                         width={300}
@@ -232,6 +544,9 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
                       </span>
                     </div>
                   )}
+                  <div className="source-badge">
+                    {shader.source === "user" ? "✨ Custom" : "📦 Built-in"}
+                  </div>
                 </div>
 
                 <div className="shader-card-info">
@@ -256,9 +571,43 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
                     }}
                     className={isComparing ? "active" : ""}
                     disabled={!isComparing && compareShaders.length >= 4}
+                    title="Add to comparison"
                   >
                     {isComparing ? "✓" : "+"} Compare
                   </button>
+                  {shader.source === "user" ? (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditShader(shader);
+                        }}
+                        title="Edit shader"
+                      >
+                        ✏️ Edit
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteShader(shader);
+                        }}
+                        className="danger-btn"
+                        title="Delete shader"
+                      >
+                        🗑️
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDuplicateShader(shader);
+                      }}
+                      title="Duplicate as custom shader"
+                    >
+                      📋 Duplicate
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -271,6 +620,7 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
           <table>
             <thead>
               <tr>
+                <th>Source</th>
                 <th>Shader</th>
                 <th>Author</th>
                 <th>Tags</th>
@@ -288,32 +638,57 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
 
                 return (
                   <tr
-                    key={shader.name}
+                    key={`${shader.source}-${shader.id || shader.name}`}
                     className={isComparing ? "comparing" : ""}
+                    onClick={() => setSelectedShader(shader)}
+                    style={{ cursor: "pointer" }}
                   >
-                    <td className="name">{shader.name}</td>
-                    <td className="author">{shader.author || "—"}</td>
-                    <td className="tags">
-                      {shader.tags?.slice(0, 2).join(", ") || "—"}
+                    <td className="source">
+                      <span className={`source-badge ${shader.source}`}>
+                        {shader.source === "user" ? "✨" : "📦"}
+                      </span>
                     </td>
+                    <td className="name">{shader.name}</td>
+                    <td className="author">{shader.author || "-"}</td>
+                    <td className="tags">{shader.tags?.join(", ") || "-"}</td>
                     <td className="metric">
-                      {benchmark ? `${benchmark.metrics.fps.toFixed(1)}` : "—"}
+                      {benchmark
+                        ? `${benchmark.metrics.fps.toFixed(1)} FPS`
+                        : "-"}
                     </td>
                     <td className="metric">
                       {benchmark
                         ? `${benchmark.metrics.avgFrameTime.toFixed(1)}ms`
-                        : "—"}
+                        : "-"}
                     </td>
-                    <td className="actions">
-                      <button onClick={() => setSelectedShader(shader)}>
-                        View
-                      </button>
+                    <td
+                      className="actions"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <button
                         onClick={() => toggleCompare(shader)}
                         className={isComparing ? "active" : ""}
+                        disabled={!isComparing && compareShaders.length >= 4}
                       >
                         {isComparing ? "✓" : "+"} Compare
                       </button>
+                      {shader.source === "user" ? (
+                        <>
+                          <button onClick={() => handleEditShader(shader)}>
+                            ✏️ Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteShader(shader)}
+                            className="danger"
+                          >
+                            🗑️ Delete
+                          </button>
+                        </>
+                      ) : (
+                        <button onClick={() => handleDuplicateShader(shader)}>
+                          📋 Duplicate
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
@@ -327,9 +702,9 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
         <div className="shader-compare">
           {compareShaders.length === 0 ? (
             <div className="empty-state">
-              <p>Select up to 4 shaders to compare their performance</p>
+              <p>No shaders selected for comparison</p>
               <button onClick={() => setViewMode("grid")}>
-                Go to Grid View
+                Browse Shaders
               </button>
             </div>
           ) : (
@@ -339,15 +714,15 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
                   <button
                     className="remove-btn"
                     onClick={() => toggleCompare(shader)}
+                    title="Remove from comparison"
                   >
                     ✕
                   </button>
                   <ShaderViewer
                     shader={shader}
-                    width={Math.floor(width / 2)}
-                    height={Math.floor(height / 2)}
+                    width={width}
+                    height={height}
                     showPerformance={true}
-                    showCode={false}
                     onMetricsCapture={handleMetricsCapture}
                   />
                 </div>
@@ -368,8 +743,8 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
             </button>
             <ShaderViewer
               shader={selectedShader}
-              width={width}
-              height={height}
+              width={Math.min(window.innerWidth - 100, 1200)}
+              height={Math.min(window.innerHeight - 200, 800)}
               showPerformance={true}
               showCode={true}
               onMetricsCapture={handleMetricsCapture}
@@ -378,58 +753,97 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
         </div>
       )}
 
-      <style>{`
+      <AddShaderModal
+        isOpen={isAddModalOpen}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setEditingShader(undefined);
+        }}
+        onSave={editingShader ? handleUpdateShader : handleAddShader}
+        editShader={editingShader}
+      />
+
+      <style jsx>{`
         .shader-gallery {
+          padding: 32px;
           background: #0a0a0a;
           min-height: 100vh;
-          padding: 20px;
           color: #fff;
-          font-family: 'Segoe UI', system-ui, sans-serif;
         }
 
         .gallery-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 30px;
-          padding: 20px;
-          background: #1a1a1a;
-          border-radius: 12px;
-          border: 1px solid #333;
+          margin-bottom: 32px;
+          gap: 20px;
         }
 
         .gallery-header h1 {
-          margin: 0;
+          margin: 0 0 12px 0;
           font-size: 32px;
-          font-weight: 600;
-          background: linear-gradient(135deg, #00ff00 0%, #00aa00 100%);
+          font-weight: 700;
+          background: linear-gradient(135deg, #00ff00 0%, #00aaff 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
 
         .gallery-stats {
           display: flex;
-          gap: 20px;
+          gap: 8px;
           font-family: monospace;
+          font-size: 14px;
           color: #888;
+          align-items: center;
         }
 
-        .gallery-stats span {
-          background: #2a2a2a;
-          padding: 8px 16px;
-          border-radius: 6px;
-          border: 1px solid #444;
+        .stat-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .stat-item strong {
+          color: #00ff00;
+        }
+
+        .stat-item.custom strong {
+          color: #00aaff;
+        }
+
+        .stat-separator {
+          color: #444;
+        }
+
+        .add-shader-btn {
+          background: linear-gradient(135deg, #00ff00 0%, #00aaff 100%);
+          color: #000;
+          border: none;
+          padding: 14px 28px;
+          border-radius: 8px;
+          font-size: 16px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.3s;
+          box-shadow: 0 4px 15px rgba(0, 255, 0, 0.3);
+          font-family: monospace;
+        }
+
+        .add-shader-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 25px rgba(0, 255, 0, 0.5);
         }
 
         .gallery-controls {
           display: flex;
           gap: 20px;
-          margin-bottom: 30px;
-          padding: 20px;
-          background: #1a1a1a;
-          border-radius: 12px;
-          border: 1px solid #333;
           flex-wrap: wrap;
+          background: #1a1a1a;
+          padding: 20px;
+          border-radius: 12px;
+          margin-bottom: 32px;
+          border: 1px solid #333;
+          align-items: center;
         }
 
         .control-group {
@@ -438,69 +852,59 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
           gap: 10px;
         }
 
-        .control-group.actions {
-          margin-left: auto;
+        .control-group label {
+          font-family: monospace;
+          font-size: 13px;
+          color: #888;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
-        .control-group label {
-          color: #888;
-          font-size: 14px;
-          font-weight: 500;
+        .control-group.actions {
+          margin-left: auto;
+          gap: 8px;
         }
 
         .button-group {
           display: flex;
-          gap: 0;
-          border: 1px solid #555;
+          gap: 4px;
+          background: #0a0a0a;
+          padding: 4px;
           border-radius: 6px;
-          overflow: hidden;
         }
 
-        .button-group button {
+        .button-group button,
+        .control-group.actions button {
+          background: transparent;
+          color: #888;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 13px;
+          font-family: monospace;
+          transition: all 0.2s;
+        }
+
+        .button-group button:hover,
+        .control-group.actions button:hover:not(:disabled) {
           background: #2a2a2a;
           color: #fff;
-          border: none;
-          border-right: 1px solid #555;
-          padding: 8px 16px;
-          cursor: pointer;
-          font-size: 14px;
-        }
-
-        .button-group button:last-child {
-          border-right: none;
         }
 
         .button-group button.active {
           background: #00ff00;
           color: #000;
-        }
-
-        .button-group button:hover:not(.active) {
-          background: #333;
-        }
-
-        select {
-          background: #2a2a2a;
-          color: #fff;
-          border: 1px solid #555;
-          padding: 8px 12px;
-          border-radius: 6px;
-          font-size: 14px;
-          cursor: pointer;
+          font-weight: bold;
         }
 
         .control-group.actions button {
           background: #2a2a2a;
           color: #fff;
-          border: 1px solid #555;
-          padding: 8px 16px;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 14px;
+          border: 1px solid #444;
         }
 
         .control-group.actions button:hover:not(:disabled) {
-          background: #333;
           border-color: #00ff00;
         }
 
@@ -509,45 +913,72 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
           cursor: not-allowed;
         }
 
+        .control-group.actions button.danger {
+          border-color: #ff4444;
+          color: #ff8888;
+        }
+
+        .control-group.actions button.danger:hover {
+          background: #ff4444;
+          color: #fff;
+          border-color: #ff4444;
+        }
+
+        select {
+          background: #0a0a0a;
+          color: #fff;
+          border: 1px solid #333;
+          padding: 8px 16px;
+          border-radius: 6px;
+          font-family: monospace;
+          font-size: 13px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        select:hover,
+        select:focus {
+          outline: none;
+          border-color: #00ff00;
+        }
+
         .shader-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 20px;
+          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+          gap: 24px;
         }
 
         .shader-card {
           background: #1a1a1a;
-          border: 2px solid #333;
+          border: 1px solid #333;
           border-radius: 12px;
           overflow: hidden;
           transition: all 0.3s;
+          position: relative;
         }
 
         .shader-card:hover {
-          border-color: #00ff00;
           transform: translateY(-4px);
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+          border-color: #555;
+        }
+
+        .shader-card.user {
+          border-color: #00aaff;
         }
 
         .shader-card.comparing {
           border-color: #ffaa00;
+          box-shadow: 0 0 20px rgba(255, 170, 0, 0.3);
         }
 
         .shader-thumbnail {
           position: relative;
           width: 100%;
           height: 200px;
-          background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          background: #0a0a0a;
           overflow: hidden;
-        }
-
-        .shader-preview-canvas {
-          display: block;
-          width: 100%;
-          height: 100%;
-          image-rendering: auto;
+          cursor: pointer;
         }
 
         .shader-preview-placeholder {
@@ -571,6 +1002,7 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
           right: 10px;
           display: flex;
           gap: 8px;
+          z-index: 1;
         }
 
         .quick-stats span {
@@ -579,6 +1011,7 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
           border-radius: 4px;
           font-size: 12px;
           font-family: monospace;
+          backdrop-filter: blur(4px);
         }
 
         .quick-stats .fps {
@@ -587,6 +1020,26 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
 
         .quick-stats .frame-time {
           color: #00aaff;
+        }
+
+        .source-badge {
+          position: absolute;
+          top: 10px;
+          left: 10px;
+          background: rgba(0, 0, 0, 0.8);
+          color: #fff;
+          padding: 4px 10px;
+          border-radius: 6px;
+          font-size: 11px;
+          font-family: monospace;
+          backdrop-filter: blur(4px);
+          z-index: 1;
+        }
+
+        .shader-card.user .source-badge {
+          background: rgba(0, 170, 255, 0.9);
+          color: #000;
+          font-weight: bold;
         }
 
         .shader-card-info {
@@ -636,6 +1089,7 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
           border-radius: 6px;
           cursor: pointer;
           font-size: 13px;
+          transition: all 0.2s;
         }
 
         .shader-card-actions button:hover:not(:disabled) {
@@ -651,6 +1105,19 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
         .shader-card-actions button:disabled {
           opacity: 0.5;
           cursor: not-allowed;
+        }
+
+        .shader-card-actions button.danger-btn {
+          background: transparent;
+          border-color: #ff4444;
+          color: #ff8888;
+          flex: 0;
+          padding: 8px 12px;
+        }
+
+        .shader-card-actions button.danger-btn:hover {
+          background: #ff4444;
+          color: #fff;
         }
 
         .shader-list {
@@ -672,6 +1139,7 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
           font-weight: 600;
           color: #00ff00;
           border-bottom: 2px solid #444;
+          font-family: monospace;
         }
 
         .shader-list td {
@@ -685,6 +1153,10 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
 
         .shader-list tr.comparing {
           background: rgba(255, 170, 0, 0.1);
+        }
+
+        .shader-list .source span {
+          font-size: 20px;
         }
 
         .shader-list .name {
@@ -731,6 +1203,16 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
           color: #000;
         }
 
+        .shader-list .actions button.danger {
+          border-color: #ff4444;
+          color: #ff8888;
+        }
+
+        .shader-list .actions button.danger:hover {
+          background: #ff4444;
+          color: #fff;
+        }
+
         .shader-compare {
           min-height: 400px;
         }
@@ -749,20 +1231,26 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
         .empty-state p {
           color: #888;
           margin-bottom: 20px;
+          font-size: 18px;
         }
 
         .empty-state button {
           background: #2a2a2a;
           color: #fff;
           border: 1px solid #555;
-          padding: 10px 20px;
+          padding: 12px 24px;
           border-radius: 6px;
           cursor: pointer;
+          font-size: 14px;
+        }
+
+        .empty-state button:hover {
+          background: #333;
         }
 
         .compare-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
           gap: 20px;
         }
 
@@ -778,11 +1266,11 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
           background: rgba(255, 0, 0, 0.9);
           color: white;
           border: none;
-          width: 30px;
-          height: 30px;
+          width: 32px;
+          height: 32px;
           border-radius: 50%;
           cursor: pointer;
-          font-size: 18px;
+          font-size: 20px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -798,7 +1286,7 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(0, 0, 0, 0.9);
+          background: rgba(0, 0, 0, 0.95);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -808,28 +1296,50 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
 
         .modal-content {
           position: relative;
-          max-width: 90%;
-          max-height: 90%;
+          max-width: 95%;
+          max-height: 95%;
           overflow: auto;
         }
 
         .modal-close {
           position: absolute;
-          top: -40px;
+          top: -50px;
           right: 0;
           background: #ff0000;
           color: white;
           border: none;
-          width: 40px;
-          height: 40px;
+          width: 44px;
+          height: 44px;
           border-radius: 50%;
           cursor: pointer;
           font-size: 24px;
           z-index: 1001;
+          transition: all 0.2s;
         }
 
         .modal-close:hover {
           background: #cc0000;
+          transform: scale(1.1);
+        }
+
+        @media (max-width: 768px) {
+          .gallery-header {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .gallery-controls {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .control-group.actions {
+            margin-left: 0;
+          }
+
+          .compare-grid {
+            grid-template-columns: 1fr;
+          }
         }
       `}</style>
     </div>
