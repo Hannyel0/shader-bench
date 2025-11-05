@@ -5,6 +5,21 @@ import { ShaderCanvas, PerformanceMetrics } from "./ShaderCanvas";
 import { PerformanceMonitor } from "./PerformanceMonitor";
 import { PerformanceOverlay } from "./PerformanceOverlay";
 import { ResolutionBenchmark } from "./ResolutionBenchmark";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  Eye,
+  EyeOff,
+  Maximize,
+  Minimize,
+  Circle,
+  Square,
+  Download,
+  Copy,
+  Code,
+} from "lucide-react";
 
 interface ShaderViewerProps {
   shader: ShaderDefinition;
@@ -203,59 +218,122 @@ export const ShaderViewer: React.FC<ShaderViewerProps> = ({
   }, [isFullscreen, exitFullscreen]);
 
   return (
-    <div className="shader-viewer">
-      <div className="shader-header">
-        <div className="shader-info">
-          <h2>{shader.name}</h2>
-          {shader.author && <p className="author">by {shader.author}</p>}
-          {shader.description && (
-            <p className="description">{shader.description}</p>
-          )}
-          {shader.tags && (
-            <div className="tags">
-              {shader.tags.map((tag) => (
-                <span key={tag} className="tag">
-                  {tag}
-                </span>
-              ))}
+    <Card className="overflow-hidden">
+      {/* Header */}
+      <div className="bg-muted/50 p-6 border-b">
+        <div className="flex justify-between items-start gap-6 flex-wrap">
+          <div className="space-y-3 flex-1">
+            <div className="flex items-center gap-3">
+              <h2 className="text-2xl font-bold">{shader.name}</h2>
+              {shader.tags && shader.tags.length > 0 && (
+                <div className="flex gap-2 flex-wrap">
+                  {shader.tags.map((tag) => (
+                    <Badge key={tag} variant="secondary" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+            {shader.author && (
+              <p className="text-sm text-muted-foreground">by {shader.author}</p>
+            )}
+            {shader.description && (
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {shader.description}
+              </p>
+            )}
+          </div>
 
-        <div className="controls">
-          <button onClick={() => setIsCodeVisible(!isCodeVisible)}>
-            {isCodeVisible ? "👁️ Hide" : "👁️ Show"} Code
-          </button>
-          <button onClick={toggleFullscreen}>
-            {isFullscreen ? "⛶ Exit" : "⛶ Fullscreen"}
-          </button>
-          <button
-            onClick={isRecording ? stopRecording : startRecording}
-            className={isRecording ? "recording" : ""}
-          >
-            {isRecording ? "⏹️ Stop" : "⏺️ Record"} Metrics
-          </button>
-          <button onClick={exportMetrics} disabled={!metrics}>
-            💾 Export Data
-          </button>
+          {/* Controls */}
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsCodeVisible(!isCodeVisible)}
+            >
+              {isCodeVisible ? (
+                <>
+                  <EyeOff className="w-4 h-4 mr-2" />
+                  Hide Code
+                </>
+              ) : (
+                <>
+                  <Eye className="w-4 h-4 mr-2" />
+                  Show Code
+                </>
+              )}
+            </Button>
+            <Button variant="outline" size="sm" onClick={toggleFullscreen}>
+              {isFullscreen ? (
+                <>
+                  <Minimize className="w-4 h-4 mr-2" />
+                  Exit
+                </>
+              ) : (
+                <>
+                  <Maximize className="w-4 h-4 mr-2" />
+                  Fullscreen
+                </>
+              )}
+            </Button>
+            <Button
+              variant={isRecording ? "destructive" : "outline"}
+              size="sm"
+              onClick={isRecording ? stopRecording : startRecording}
+              className={isRecording ? "animate-pulse" : ""}
+            >
+              {isRecording ? (
+                <>
+                  <Square className="w-4 h-4 mr-2 fill-current" />
+                  Stop
+                </>
+              ) : (
+                <>
+                  <Circle className="w-4 h-4 mr-2" />
+                  Record
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportMetrics}
+              disabled={!metrics}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="shader-content">
-        <div className="canvas-container" ref={containerRef}>
-          <ShaderCanvas
-            fragmentShader={shader.fragmentShader}
-            width={isFullscreen ? fullscreenDimensions.width : width}
-            height={isFullscreen ? fullscreenDimensions.height : height}
-            onPerformanceUpdate={handlePerformanceUpdate}
-            onResize={handleResize}
-          />
+      {/* Content */}
+      <div className="p-6 space-y-6">
+        {/* Canvas Container */}
+        <div className="relative inline-block" ref={containerRef}>
+          <div className="border-2 rounded-lg overflow-hidden bg-black">
+            <ShaderCanvas
+              fragmentShader={shader.fragmentShader}
+              width={isFullscreen ? fullscreenDimensions.width : width}
+              height={isFullscreen ? fullscreenDimensions.height : height}
+              onPerformanceUpdate={handlePerformanceUpdate}
+              onResize={handleResize}
+            />
+          </div>
           {isRecording && (
-            <div className="recording-indicator">● RECORDING</div>
+            <Badge
+              variant="destructive"
+              className="absolute top-3 right-3 animate-pulse font-mono"
+            >
+              <Circle className="w-2 h-2 mr-2 fill-current" />
+              RECORDING
+            </Badge>
           )}
           <PerformanceOverlay metrics={metrics} isFullscreen={isFullscreen} />
         </div>
 
+        {/* Performance Metrics */}
         {showPerformance && !isFullscreen && (
           <>
             <PerformanceMonitor metrics={metrics} showGraph={true} />
@@ -263,196 +341,35 @@ export const ShaderViewer: React.FC<ShaderViewerProps> = ({
           </>
         )}
 
+        {/* Code Viewer */}
         {isCodeVisible && (
-          <div className="code-viewer">
-            <div className="code-header">
-              <span>Fragment Shader Code</span>
-              <button
+          <Card className="overflow-hidden">
+            <div className="bg-muted/50 p-4 flex justify-between items-center border-b">
+              <div className="flex items-center gap-2">
+                <Code className="w-4 h-4" />
+                <span className="text-sm font-semibold">Fragment Shader Code</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => {
                   navigator.clipboard.writeText(shader.fragmentShader);
                 }}
               >
-                📋 Copy
-              </button>
+                <Copy className="w-4 h-4 mr-2" />
+                Copy
+              </Button>
             </div>
-            <pre>
-              <code>{shader.fragmentShader}</code>
+            <pre className="p-6 overflow-x-auto bg-muted/20 text-sm">
+              <code className="font-mono text-emerald-500">
+                {shader.fragmentShader}
+              </code>
             </pre>
-          </div>
+          </Card>
         )}
       </div>
 
-      <style>{`
-        .shader-viewer {
-          background: #1a1a1a;
-          border-radius: 12px;
-          overflow: hidden;
-          border: 1px solid #333;
-        }
-
-        .shader-header {
-          background: #2a2a2a;
-          padding: 20px;
-          border-bottom: 1px solid #333;
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 20px;
-        }
-
-        .shader-info h2 {
-          margin: 0 0 8px 0;
-          color: #fff;
-          font-size: 24px;
-          font-weight: 600;
-        }
-
-        .shader-info .author {
-          margin: 0 0 8px 0;
-          color: #888;
-          font-size: 14px;
-        }
-
-        .shader-info .description {
-          margin: 0 0 12px 0;
-          color: #aaa;
-          font-size: 14px;
-          line-height: 1.5;
-        }
-
-        .tags {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-
-        .tag {
-          background: #333;
-          color: #00ff00;
-          padding: 4px 10px;
-          border-radius: 4px;
-          font-size: 12px;
-          font-family: monospace;
-        }
-
-        .controls {
-          display: flex;
-          gap: 10px;
-          flex-shrink: 0;
-        }
-
-        .controls button {
-          background: #333;
-          color: #fff;
-          border: 1px solid #555;
-          padding: 10px 16px;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 14px;
-          font-family: monospace;
-          transition: all 0.2s;
-        }
-
-        .controls button:hover:not(:disabled) {
-          background: #444;
-          border-color: #00ff00;
-        }
-
-        .controls button:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .controls button.recording {
-          background: #ff0000;
-          border-color: #ff0000;
-          animation: pulse 1s infinite;
-        }
-
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.7; }
-        }
-
-        .shader-content {
-          padding: 20px;
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-
-        .canvas-container {
-          position: relative;
-          display: inline-block;
-          border: 2px solid #333;
-          border-radius: 8px;
-          overflow: hidden;
-        }
-
-        .recording-indicator {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          background: rgba(255, 0, 0, 0.9);
-          color: white;
-          padding: 6px 12px;
-          border-radius: 4px;
-          font-size: 12px;
-          font-weight: bold;
-          font-family: monospace;
-          animation: pulse 1s infinite;
-        }
-
-        .code-viewer {
-          background: #1a1a1a;
-          border: 1px solid #333;
-          border-radius: 8px;
-          overflow: hidden;
-        }
-
-        .code-header {
-          background: #2a2a2a;
-          padding: 12px 16px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          border-bottom: 1px solid #333;
-        }
-
-        .code-header span {
-          color: #fff;
-          font-family: monospace;
-          font-size: 14px;
-        }
-
-        .code-header button {
-          background: #333;
-          color: #fff;
-          border: 1px solid #555;
-          padding: 6px 12px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 12px;
-          font-family: monospace;
-        }
-
-        .code-header button:hover {
-          background: #444;
-        }
-
-        .code-viewer pre {
-          margin: 0;
-          padding: 20px;
-          overflow-x: auto;
-        }
-
-        .code-viewer code {
-          color: #00ff00;
-          font-family: 'Consolas', 'Monaco', monospace;
-          font-size: 13px;
-          line-height: 1.6;
-        }
-
+      <style jsx>{`
         .canvas-container:fullscreen {
           background: #000;
           display: flex;
@@ -465,6 +382,6 @@ export const ShaderViewer: React.FC<ShaderViewerProps> = ({
           border-radius: 0;
         }
       `}</style>
-    </div>
+    </Card>
   );
 };

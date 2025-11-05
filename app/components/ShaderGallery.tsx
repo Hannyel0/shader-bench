@@ -6,6 +6,33 @@ import { ShaderCanvas, PerformanceMetrics } from "./ShaderCanvas";
 import { AddShaderModal } from "./AddShadermodal";
 import { ShaderManager, StoredShader } from "../utils/ShaderManager";
 import { exampleShaders } from "../lib/ShaderLibrary";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Plus,
+  Grid3x3,
+  List,
+  GitCompare,
+  Download,
+  Upload,
+  Trash2,
+  Play,
+  Sparkles,
+  Package,
+  Edit,
+  Copy,
+  X,
+  Loader2,
+} from "lucide-react";
 
 interface ShaderGalleryProps {
   defaultView?: "grid" | "list" | "compare";
@@ -342,163 +369,179 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
 
   if (isLoading) {
     return (
-      <div className="shader-gallery loading">
-        <div className="loading-spinner">⏳ Loading ShaderManager...</div>
-        <style jsx>{`
-          .shader-gallery.loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 400px;
-            background: #0a0a0a;
-            border-radius: 12px;
-          }
-          .loading-spinner {
-            color: #00ff00;
-            font-size: 24px;
-            font-family: monospace;
-          }
-        `}</style>
-      </div>
+      <Card className="p-12 flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
+          <p className="text-lg font-semibold">Loading ShaderManager...</p>
+        </div>
+      </Card>
     );
   }
 
   return (
-    <div className="shader-gallery">
-      <div className="gallery-header">
-        <div>
-          <h1>Shader Performance Testing Suite</h1>
-          <div className="gallery-stats">
-            <span className="stat-item">
-              <strong>{allShaders.length}</strong> total shaders
-            </span>
-            <span className="stat-separator">•</span>
-            <span className="stat-item">
-              <strong>{exampleShaders.length}</strong> built-in
-            </span>
-            <span className="stat-separator">•</span>
-            <span className="stat-item custom">
-              <strong>{userShaders.length}</strong> custom
-            </span>
-            <span className="stat-separator">•</span>
-            <span className="stat-item">
-              <strong>{benchmarks.size}</strong> benchmarked
-            </span>
+    <div className="space-y-6">
+      {/* Header */}
+      <Card className="p-6">
+        <div className="flex justify-between items-start gap-6 flex-wrap">
+          <div className="space-y-3">
+            <h1 className="text-3xl font-bold">Shader Performance Testing Suite</h1>
+            <div className="flex gap-4 flex-wrap text-sm">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{allShaders.length}</Badge>
+                <span className="text-muted-foreground">total shaders</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">
+                  <Package className="w-3 h-3 mr-1" />
+                  {exampleShaders.length}
+                </Badge>
+                <span className="text-muted-foreground">built-in</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="default">
+                  <Sparkles className="w-3 h-3 mr-1" />
+                  {userShaders.length}
+                </Badge>
+                <span className="text-muted-foreground">custom</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{benchmarks.size}</Badge>
+                <span className="text-muted-foreground">benchmarked</span>
+              </div>
+            </div>
+          </div>
+          <Button
+            size="lg"
+            onClick={() => {
+              setEditingShader(undefined);
+              setIsAddModalOpen(true);
+            }}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Custom Shader
+          </Button>
+        </div>
+      </Card>
+
+      {/* Controls */}
+      <Card className="p-6">
+        <div className="space-y-4">
+          {/* View Mode Tabs */}
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)}>
+              <TabsList>
+                <TabsTrigger value="grid">
+                  <Grid3x3 className="w-4 h-4 mr-2" />
+                  Grid
+                </TabsTrigger>
+                <TabsTrigger value="list">
+                  <List className="w-4 h-4 mr-2" />
+                  List
+                </TabsTrigger>
+                <TabsTrigger value="compare">
+                  <GitCompare className="w-4 h-4 mr-2" />
+                  Compare ({compareShaders.length})
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" size="sm" onClick={runBenchmarkSuite}>
+                <Play className="w-4 h-4 mr-2" />
+                Benchmark
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportBenchmarks}
+                disabled={benchmarks.size === 0}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export Data
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleImportShaders}>
+                <Upload className="w-4 h-4 mr-2" />
+                Import
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportShaders}
+                disabled={userShaders.length === 0}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+              {userShaders.length > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleClearUserShaders}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Clear Custom
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div className="flex gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium">Source:</label>
+              <Select
+                value={filterSource}
+                onValueChange={(v) => setFilterSource(v as any)}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Shaders</SelectItem>
+                  <SelectItem value="builtin">Built-in Only</SelectItem>
+                  <SelectItem value="user">Custom Only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium">Sort By:</label>
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Name</SelectItem>
+                  <SelectItem value="fps">FPS (High to Low)</SelectItem>
+                  <SelectItem value="frameTime">Frame Time (Low to High)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium">Filter Tag:</label>
+              <Select value={filterTag || "__all__"} onValueChange={(v) => setFilterTag(v === "__all__" ? "" : v)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="All Tags" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Tags</SelectItem>
+                  {allTags.map((tag) => (
+                    <SelectItem key={tag} value={tag}>
+                      {tag}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
-        <button
-          className="add-shader-btn"
-          onClick={() => {
-            setEditingShader(undefined);
-            setIsAddModalOpen(true);
-          }}
-        >
-          ✨ Add Custom Shader
-        </button>
-      </div>
+      </Card>
 
-      <div className="gallery-controls">
-        <div className="control-group">
-          <label>View Mode:</label>
-          <div className="button-group">
-            <button
-              className={viewMode === "grid" ? "active" : ""}
-              onClick={() => setViewMode("grid")}
-            >
-              Grid
-            </button>
-            <button
-              className={viewMode === "list" ? "active" : ""}
-              onClick={() => setViewMode("list")}
-            >
-              List
-            </button>
-            <button
-              className={viewMode === "compare" ? "active" : ""}
-              onClick={() => setViewMode("compare")}
-            >
-              Compare ({compareShaders.length})
-            </button>
-          </div>
-        </div>
-
-        <div className="control-group">
-          <label>Source:</label>
-          <select
-            value={filterSource}
-            onChange={(e) => setFilterSource(e.target.value as any)}
-          >
-            <option value="all">All Shaders</option>
-            <option value="builtin">Built-in Only</option>
-            <option value="user">Custom Only</option>
-          </select>
-        </div>
-
-        <div className="control-group">
-          <label>Sort By:</label>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-          >
-            <option value="name">Name</option>
-            <option value="fps">FPS (High to Low)</option>
-            <option value="frameTime">Frame Time (Low to High)</option>
-          </select>
-        </div>
-
-        <div className="control-group">
-          <label>Filter Tag:</label>
-          <select
-            value={filterTag}
-            onChange={(e) => setFilterTag(e.target.value)}
-          >
-            <option value="">All Tags</option>
-            {allTags.map((tag) => (
-              <option key={tag} value={tag}>
-                {tag}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="control-group actions">
-          <button
-            onClick={runBenchmarkSuite}
-            title="Run automated benchmark suite"
-          >
-            🏃 Benchmark
-          </button>
-          <button
-            onClick={exportBenchmarks}
-            disabled={benchmarks.size === 0}
-            title="Export performance data"
-          >
-            💾 Export Data
-          </button>
-          <button onClick={handleImportShaders} title="Import custom shaders">
-            📥 Import
-          </button>
-          <button
-            onClick={handleExportShaders}
-            disabled={userShaders.length === 0}
-            title="Export custom shaders"
-          >
-            📤 Export
-          </button>
-          {userShaders.length > 0 && (
-            <button
-              onClick={handleClearUserShaders}
-              className="danger"
-              title="Delete all custom shaders"
-            >
-              🗑️ Clear Custom
-            </button>
-          )}
-        </div>
-      </div>
-
+      {/* Grid View */}
       {viewMode === "grid" && (
-        <div className="shader-grid">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredShaders.map((shader) => {
             const benchmark = benchmarks.get(shader.name);
             const isComparing = compareShaders.find(
@@ -506,218 +549,285 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
             );
 
             return (
-              <div
+              <Card
                 key={`${shader.source}-${shader.id || shader.name}`}
-                className={`shader-card ${isComparing ? "comparing" : ""} ${
-                  shader.source
+                className={`overflow-hidden hover:shadow-lg transition-all cursor-pointer ${
+                  isComparing ? "ring-2 ring-primary" : ""
                 }`}
                 onMouseEnter={() => setHoveredCard(shader.name)}
                 onMouseLeave={() => setHoveredCard(null)}
               >
+                {/* Thumbnail */}
                 <div
-                  className="shader-thumbnail"
+                  className="relative h-48 bg-black"
                   onClick={() => setSelectedShader(shader)}
                 >
                   {hoveredCard === shader.name ? (
-                    <div style={{ width: "100%", height: "100%" }}>
-                      <ShaderCanvas
-                        fragmentShader={shader.fragmentShader}
-                        width={300}
-                        height={200}
-                        className="shader-preview-canvas"
-                      />
-                    </div>
+                    <ShaderCanvas
+                      fragmentShader={shader.fragmentShader}
+                      width={300}
+                      height={200}
+                      className="w-full h-full"
+                    />
                   ) : (
-                    <div className="shader-preview-placeholder">
-                      <div className="shader-preview-text">
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+                      <div className="text-5xl font-bold text-muted-foreground/30">
                         {shader.name.slice(0, 2).toUpperCase()}
                       </div>
                     </div>
                   )}
+
+                  {/* Quick Stats Overlay */}
                   {benchmark && (
-                    <div className="quick-stats">
-                      <span className="fps">
+                    <div className="absolute top-2 left-2 flex gap-2">
+                      <Badge variant="default" className="font-mono text-xs">
                         {benchmark.metrics.fps.toFixed(1)} FPS
-                      </span>
-                      <span className="frame-time">
+                      </Badge>
+                      <Badge variant="secondary" className="font-mono text-xs">
                         {benchmark.metrics.avgFrameTime.toFixed(1)}ms
-                      </span>
+                      </Badge>
                     </div>
                   )}
-                  <div className="source-badge">
-                    {shader.source === "user" ? "✨ Custom" : "📦 Built-in"}
-                  </div>
+
+                  {/* Source Badge */}
+                  <Badge
+                    variant={shader.source === "user" ? "default" : "secondary"}
+                    className="absolute top-2 right-2 text-xs"
+                  >
+                    {shader.source === "user" ? (
+                      <>
+                        <Sparkles className="w-3 h-3 mr-1" />
+                        Custom
+                      </>
+                    ) : (
+                      <>
+                        <Package className="w-3 h-3 mr-1" />
+                        Built-in
+                      </>
+                    )}
+                  </Badge>
                 </div>
 
-                <div className="shader-card-info">
-                  <h3>{shader.name}</h3>
-                  {shader.author && <p className="author">{shader.author}</p>}
-                  {shader.tags && (
-                    <div className="tags">
+                {/* Info */}
+                <div className="p-4 space-y-3">
+                  <div>
+                    <h3 className="font-semibold text-lg line-clamp-1">
+                      {shader.name}
+                    </h3>
+                    {shader.author && (
+                      <p className="text-sm text-muted-foreground">
+                        by {shader.author}
+                      </p>
+                    )}
+                  </div>
+
+                  {shader.tags && shader.tags.length > 0 && (
+                    <div className="flex gap-2 flex-wrap">
                       {shader.tags.slice(0, 3).map((tag) => (
-                        <span key={tag} className="tag">
+                        <Badge key={tag} variant="outline" className="text-xs">
                           {tag}
-                        </span>
+                        </Badge>
                       ))}
                     </div>
                   )}
-                </div>
 
-                <div className="shader-card-actions">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleCompare(shader);
-                    }}
-                    className={isComparing ? "active" : ""}
-                    disabled={!isComparing && compareShaders.length >= 4}
-                    title="Add to comparison"
-                  >
-                    {isComparing ? "✓" : "+"} Compare
-                  </button>
-                  {shader.source === "user" ? (
-                    <>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditShader(shader);
-                        }}
-                        title="Edit shader"
-                      >
-                        ✏️ Edit
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteShader(shader);
-                        }}
-                        className="danger-btn"
-                        title="Delete shader"
-                      >
-                        🗑️
-                      </button>
-                    </>
-                  ) : (
-                    <button
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      variant={isComparing ? "default" : "outline"}
+                      size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDuplicateShader(shader);
+                        toggleCompare(shader);
                       }}
-                      title="Duplicate as custom shader"
+                      disabled={!isComparing && compareShaders.length >= 4}
+                      className="flex-1"
                     >
-                      📋 Duplicate
-                    </button>
-                  )}
+                      <GitCompare className="w-4 h-4 mr-2" />
+                      {isComparing ? "✓" : "Compare"}
+                    </Button>
+
+                    {shader.source === "user" ? (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditShader(shader);
+                          }}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteShader(shader);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDuplicateShader(shader);
+                        }}
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
+              </Card>
             );
           })}
         </div>
       )}
 
+      {/* List View */}
       {viewMode === "list" && (
-        <div className="shader-list">
-          <table>
-            <thead>
-              <tr>
-                <th>Source</th>
-                <th>Shader</th>
-                <th>Author</th>
-                <th>Tags</th>
-                <th>FPS</th>
-                <th>Avg Frame Time</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredShaders.map((shader) => {
-                const benchmark = benchmarks.get(shader.name);
-                const isComparing = compareShaders.find(
-                  (s) => s.name === shader.name
-                );
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Source</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Shader</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Author</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Tags</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">FPS</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Avg Frame Time</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredShaders.map((shader) => {
+                  const benchmark = benchmarks.get(shader.name);
+                  const isComparing = compareShaders.find(
+                    (s) => s.name === shader.name
+                  );
 
-                return (
-                  <tr
-                    key={`${shader.source}-${shader.id || shader.name}`}
-                    className={isComparing ? "comparing" : ""}
-                    onClick={() => setSelectedShader(shader)}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <td className="source">
-                      <span className={`source-badge ${shader.source}`}>
-                        {shader.source === "user" ? "✨" : "📦"}
-                      </span>
-                    </td>
-                    <td className="name">{shader.name}</td>
-                    <td className="author">{shader.author || "-"}</td>
-                    <td className="tags">{shader.tags?.join(", ") || "-"}</td>
-                    <td className="metric">
-                      {benchmark
-                        ? `${benchmark.metrics.fps.toFixed(1)} FPS`
-                        : "-"}
-                    </td>
-                    <td className="metric">
-                      {benchmark
-                        ? `${benchmark.metrics.avgFrameTime.toFixed(1)}ms`
-                        : "-"}
-                    </td>
-                    <td
-                      className="actions"
-                      onClick={(e) => e.stopPropagation()}
+                  return (
+                    <tr
+                      key={`${shader.source}-${shader.id || shader.name}`}
+                      className={`border-b hover:bg-muted/50 cursor-pointer ${
+                        isComparing ? "bg-primary/5" : ""
+                      }`}
+                      onClick={() => setSelectedShader(shader)}
                     >
-                      <button
-                        onClick={() => toggleCompare(shader)}
-                        className={isComparing ? "active" : ""}
-                        disabled={!isComparing && compareShaders.length >= 4}
+                      <td className="px-4 py-3">
+                        {shader.source === "user" ? (
+                          <Badge variant="default" className="text-xs">
+                            <Sparkles className="w-3 h-3" />
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-xs">
+                            <Package className="w-3 h-3" />
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 font-semibold">{shader.name}</td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {shader.author || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {shader.tags?.join(", ") || "-"}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-sm">
+                        {benchmark
+                          ? `${benchmark.metrics.fps.toFixed(1)} FPS`
+                          : "-"}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-sm">
+                        {benchmark
+                          ? `${benchmark.metrics.avgFrameTime.toFixed(1)}ms`
+                          : "-"}
+                      </td>
+                      <td
+                        className="px-4 py-3"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        {isComparing ? "✓" : "+"} Compare
-                      </button>
-                      {shader.source === "user" ? (
-                        <>
-                          <button onClick={() => handleEditShader(shader)}>
-                            ✏️ Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteShader(shader)}
-                            className="danger"
+                        <div className="flex gap-2">
+                          <Button
+                            variant={isComparing ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => toggleCompare(shader)}
+                            disabled={!isComparing && compareShaders.length >= 4}
                           >
-                            🗑️ Delete
-                          </button>
-                        </>
-                      ) : (
-                        <button onClick={() => handleDuplicateShader(shader)}>
-                          📋 Duplicate
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                            {isComparing ? "✓" : "+"} Compare
+                          </Button>
+                          {shader.source === "user" ? (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditShader(shader)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDeleteShader(shader)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDuplicateShader(shader)}
+                            >
+                              <Copy className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
 
+      {/* Compare View */}
       {viewMode === "compare" && (
-        <div className="shader-compare">
+        <div>
           {compareShaders.length === 0 ? (
-            <div className="empty-state">
-              <p>No shaders selected for comparison</p>
-              <button onClick={() => setViewMode("grid")}>
-                Browse Shaders
-              </button>
-            </div>
+            <Card className="p-12">
+              <div className="text-center space-y-4">
+                <div className="text-5xl text-muted-foreground">
+                  <GitCompare className="w-16 h-16 mx-auto" />
+                </div>
+                <p className="text-lg text-muted-foreground">
+                  No shaders selected for comparison
+                </p>
+                <Button onClick={() => setViewMode("grid")}>
+                  Browse Shaders
+                </Button>
+              </div>
+            </Card>
           ) : (
-            <div className="compare-grid">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {compareShaders.map((shader) => (
-                <div key={shader.name} className="compare-item">
-                  <button
-                    className="remove-btn"
+                <div key={shader.name} className="relative">
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-3 -right-3 z-10 rounded-full"
                     onClick={() => toggleCompare(shader)}
-                    title="Remove from comparison"
                   >
-                    ✕
-                  </button>
+                    <X className="w-4 h-4" />
+                  </Button>
                   <ShaderViewer
                     shader={shader}
                     width={width}
@@ -732,15 +842,24 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
         </div>
       )}
 
+      {/* Shader Detail Modal */}
       {selectedShader && (
-        <div className="modal-overlay" onClick={() => setSelectedShader(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button
-              className="modal-close"
+        <div
+          className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setSelectedShader(null)}
+        >
+          <div
+            className="relative max-w-[95%] max-h-[95%] overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Button
+              variant="destructive"
+              size="icon"
+              className="absolute -top-12 right-0 rounded-full w-11 h-11"
               onClick={() => setSelectedShader(null)}
             >
-              ✕
-            </button>
+              <X className="h-5 w-5" />
+            </Button>
             <ShaderViewer
               shader={selectedShader}
               width={Math.min(window.innerWidth - 100, 1200)}
@@ -753,6 +872,7 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
         </div>
       )}
 
+      {/* Add/Edit Shader Modal */}
       <AddShaderModal
         isOpen={isAddModalOpen}
         onClose={() => {
@@ -762,586 +882,6 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
         onSave={editingShader ? handleUpdateShader : handleAddShader}
         editShader={editingShader}
       />
-
-      <style jsx>{`
-        .shader-gallery {
-          padding: 32px;
-          background: #0a0a0a;
-          min-height: 100vh;
-          color: #fff;
-        }
-
-        .gallery-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 32px;
-          gap: 20px;
-        }
-
-        .gallery-header h1 {
-          margin: 0 0 12px 0;
-          font-size: 32px;
-          font-weight: 700;
-          background: linear-gradient(135deg, #00ff00 0%, #00aaff 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-
-        .gallery-stats {
-          display: flex;
-          gap: 8px;
-          font-family: monospace;
-          font-size: 14px;
-          color: #888;
-          align-items: center;
-        }
-
-        .stat-item {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-        }
-
-        .stat-item strong {
-          color: #00ff00;
-        }
-
-        .stat-item.custom strong {
-          color: #00aaff;
-        }
-
-        .stat-separator {
-          color: #444;
-        }
-
-        .add-shader-btn {
-          background: linear-gradient(135deg, #00ff00 0%, #00aaff 100%);
-          color: #000;
-          border: none;
-          padding: 14px 28px;
-          border-radius: 8px;
-          font-size: 16px;
-          font-weight: 700;
-          cursor: pointer;
-          transition: all 0.3s;
-          box-shadow: 0 4px 15px rgba(0, 255, 0, 0.3);
-          font-family: monospace;
-        }
-
-        .add-shader-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 25px rgba(0, 255, 0, 0.5);
-        }
-
-        .gallery-controls {
-          display: flex;
-          gap: 20px;
-          flex-wrap: wrap;
-          background: #1a1a1a;
-          padding: 20px;
-          border-radius: 12px;
-          margin-bottom: 32px;
-          border: 1px solid #333;
-          align-items: center;
-        }
-
-        .control-group {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .control-group label {
-          font-family: monospace;
-          font-size: 13px;
-          color: #888;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .control-group.actions {
-          margin-left: auto;
-          gap: 8px;
-        }
-
-        .button-group {
-          display: flex;
-          gap: 4px;
-          background: #0a0a0a;
-          padding: 4px;
-          border-radius: 6px;
-        }
-
-        .button-group button,
-        .control-group.actions button {
-          background: transparent;
-          color: #888;
-          border: none;
-          padding: 8px 16px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 13px;
-          font-family: monospace;
-          transition: all 0.2s;
-        }
-
-        .button-group button:hover,
-        .control-group.actions button:hover:not(:disabled) {
-          background: #2a2a2a;
-          color: #fff;
-        }
-
-        .button-group button.active {
-          background: #00ff00;
-          color: #000;
-          font-weight: bold;
-        }
-
-        .control-group.actions button {
-          background: #2a2a2a;
-          color: #fff;
-          border: 1px solid #444;
-        }
-
-        .control-group.actions button:hover:not(:disabled) {
-          border-color: #00ff00;
-        }
-
-        .control-group.actions button:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .control-group.actions button.danger {
-          border-color: #ff4444;
-          color: #ff8888;
-        }
-
-        .control-group.actions button.danger:hover {
-          background: #ff4444;
-          color: #fff;
-          border-color: #ff4444;
-        }
-
-        select {
-          background: #0a0a0a;
-          color: #fff;
-          border: 1px solid #333;
-          padding: 8px 16px;
-          border-radius: 6px;
-          font-family: monospace;
-          font-size: 13px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        select:hover,
-        select:focus {
-          outline: none;
-          border-color: #00ff00;
-        }
-
-        .shader-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-          gap: 24px;
-        }
-
-        .shader-card {
-          background: #1a1a1a;
-          border: 1px solid #333;
-          border-radius: 12px;
-          overflow: hidden;
-          transition: all 0.3s;
-          position: relative;
-        }
-
-        .shader-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
-          border-color: #555;
-        }
-
-        .shader-card.user {
-          border-color: #00aaff;
-        }
-
-        .shader-card.comparing {
-          border-color: #ffaa00;
-          box-shadow: 0 0 20px rgba(255, 170, 0, 0.3);
-        }
-
-        .shader-thumbnail {
-          position: relative;
-          width: 100%;
-          height: 200px;
-          background: #0a0a0a;
-          overflow: hidden;
-          cursor: pointer;
-        }
-
-        .shader-preview-placeholder {
-          width: 100%;
-          height: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-        }
-
-        .shader-preview-text {
-          font-size: 64px;
-          font-weight: bold;
-          color: #333;
-        }
-
-        .quick-stats {
-          position: absolute;
-          bottom: 10px;
-          right: 10px;
-          display: flex;
-          gap: 8px;
-          z-index: 1;
-        }
-
-        .quick-stats span {
-          background: rgba(0, 0, 0, 0.8);
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 12px;
-          font-family: monospace;
-          backdrop-filter: blur(4px);
-        }
-
-        .quick-stats .fps {
-          color: #00ff00;
-        }
-
-        .quick-stats .frame-time {
-          color: #00aaff;
-        }
-
-        .source-badge {
-          position: absolute;
-          top: 10px;
-          left: 10px;
-          background: rgba(0, 0, 0, 0.8);
-          color: #fff;
-          padding: 4px 10px;
-          border-radius: 6px;
-          font-size: 11px;
-          font-family: monospace;
-          backdrop-filter: blur(4px);
-          z-index: 1;
-        }
-
-        .shader-card.user .source-badge {
-          background: rgba(0, 170, 255, 0.9);
-          color: #000;
-          font-weight: bold;
-        }
-
-        .shader-card-info {
-          padding: 16px;
-        }
-
-        .shader-card-info h3 {
-          margin: 0 0 8px 0;
-          font-size: 18px;
-          font-weight: 600;
-        }
-
-        .shader-card-info .author {
-          margin: 0 0 12px 0;
-          color: #888;
-          font-size: 13px;
-        }
-
-        .shader-card-info .tags {
-          display: flex;
-          gap: 6px;
-          flex-wrap: wrap;
-        }
-
-        .shader-card-info .tag {
-          background: #2a2a2a;
-          color: #00ff00;
-          padding: 3px 8px;
-          border-radius: 4px;
-          font-size: 11px;
-          font-family: monospace;
-        }
-
-        .shader-card-actions {
-          padding: 12px 16px;
-          border-top: 1px solid #333;
-          display: flex;
-          gap: 8px;
-        }
-
-        .shader-card-actions button {
-          flex: 1;
-          background: #2a2a2a;
-          color: #fff;
-          border: 1px solid #555;
-          padding: 8px;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 13px;
-          transition: all 0.2s;
-        }
-
-        .shader-card-actions button:hover:not(:disabled) {
-          background: #333;
-        }
-
-        .shader-card-actions button.active {
-          background: #ffaa00;
-          border-color: #ffaa00;
-          color: #000;
-        }
-
-        .shader-card-actions button:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .shader-card-actions button.danger-btn {
-          background: transparent;
-          border-color: #ff4444;
-          color: #ff8888;
-          flex: 0;
-          padding: 8px 12px;
-        }
-
-        .shader-card-actions button.danger-btn:hover {
-          background: #ff4444;
-          color: #fff;
-        }
-
-        .shader-list {
-          background: #1a1a1a;
-          border-radius: 12px;
-          overflow: hidden;
-          border: 1px solid #333;
-        }
-
-        .shader-list table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-
-        .shader-list th {
-          background: #2a2a2a;
-          padding: 16px;
-          text-align: left;
-          font-weight: 600;
-          color: #00ff00;
-          border-bottom: 2px solid #444;
-          font-family: monospace;
-        }
-
-        .shader-list td {
-          padding: 16px;
-          border-bottom: 1px solid #333;
-        }
-
-        .shader-list tr:hover {
-          background: #2a2a2a;
-        }
-
-        .shader-list tr.comparing {
-          background: rgba(255, 170, 0, 0.1);
-        }
-
-        .shader-list .source span {
-          font-size: 20px;
-        }
-
-        .shader-list .name {
-          font-weight: 600;
-        }
-
-        .shader-list .author {
-          color: #888;
-        }
-
-        .shader-list .tags {
-          color: #00ff00;
-          font-family: monospace;
-          font-size: 12px;
-        }
-
-        .shader-list .metric {
-          font-family: monospace;
-          color: #00aaff;
-        }
-
-        .shader-list .actions {
-          display: flex;
-          gap: 8px;
-        }
-
-        .shader-list .actions button {
-          background: #2a2a2a;
-          color: #fff;
-          border: 1px solid #555;
-          padding: 6px 12px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 12px;
-        }
-
-        .shader-list .actions button:hover {
-          background: #333;
-        }
-
-        .shader-list .actions button.active {
-          background: #ffaa00;
-          border-color: #ffaa00;
-          color: #000;
-        }
-
-        .shader-list .actions button.danger {
-          border-color: #ff4444;
-          color: #ff8888;
-        }
-
-        .shader-list .actions button.danger:hover {
-          background: #ff4444;
-          color: #fff;
-        }
-
-        .shader-compare {
-          min-height: 400px;
-        }
-
-        .empty-state {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          height: 400px;
-          background: #1a1a1a;
-          border-radius: 12px;
-          border: 2px dashed #333;
-        }
-
-        .empty-state p {
-          color: #888;
-          margin-bottom: 20px;
-          font-size: 18px;
-        }
-
-        .empty-state button {
-          background: #2a2a2a;
-          color: #fff;
-          border: 1px solid #555;
-          padding: 12px 24px;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 14px;
-        }
-
-        .empty-state button:hover {
-          background: #333;
-        }
-
-        .compare-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-          gap: 20px;
-        }
-
-        .compare-item {
-          position: relative;
-        }
-
-        .remove-btn {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          z-index: 10;
-          background: rgba(255, 0, 0, 0.9);
-          color: white;
-          border: none;
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          cursor: pointer;
-          font-size: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .remove-btn:hover {
-          background: red;
-        }
-
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.95);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-          padding: 20px;
-        }
-
-        .modal-content {
-          position: relative;
-          max-width: 95%;
-          max-height: 95%;
-          overflow: auto;
-        }
-
-        .modal-close {
-          position: absolute;
-          top: -50px;
-          right: 0;
-          background: #ff0000;
-          color: white;
-          border: none;
-          width: 44px;
-          height: 44px;
-          border-radius: 50%;
-          cursor: pointer;
-          font-size: 24px;
-          z-index: 1001;
-          transition: all 0.2s;
-        }
-
-        .modal-close:hover {
-          background: #cc0000;
-          transform: scale(1.1);
-        }
-
-        @media (max-width: 768px) {
-          .gallery-header {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-
-          .gallery-controls {
-            flex-direction: column;
-            align-items: stretch;
-          }
-
-          .control-group.actions {
-            margin-left: 0;
-          }
-
-          .compare-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
     </div>
   );
 };

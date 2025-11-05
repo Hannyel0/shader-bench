@@ -358,8 +358,8 @@ export const ShaderCanvas: React.FC<ShaderCanvasProps> = ({
       ref={canvasRef}
       width={width}
       height={height}
-      className={className}
-      style={{ display: "block", imageRendering: "pixelated" }}
+      className={`${className} block`}
+      style={{ imageRendering: "pixelated" }}
     />
   );
 };

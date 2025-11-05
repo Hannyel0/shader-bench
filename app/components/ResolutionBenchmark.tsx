@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { PerformanceMetrics } from "./ShaderCanvas";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Monitor } from "lucide-react";
 
 interface ResolutionBenchmarkProps {
   currentMetrics: PerformanceMetrics | null;
@@ -61,105 +64,79 @@ export const ResolutionBenchmark: React.FC<ResolutionBenchmarkProps> = ({
   if (benchmarks.length === 0) return null;
 
   return (
-    <div className="resolution-benchmark">
-      <h3>Resolution Performance Analysis</h3>
-      <div className="benchmark-table">
-        <table>
+    <Card className="overflow-hidden">
+      <div className="bg-muted/50 p-4 border-b">
+        <div className="flex items-center gap-2">
+          <Monitor className="w-5 h-5 text-primary" />
+          <h3 className="text-lg font-semibold">Resolution Performance Analysis</h3>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full">
           <thead>
-            <tr>
-              <th>Resolution</th>
-              <th>Pixels</th>
-              <th>FPS</th>
-              <th>Frame Time</th>
-              <th>Efficiency</th>
+            <tr className="border-b bg-muted/30">
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Resolution
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Pixels
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                FPS
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Frame Time
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Efficiency
+              </th>
             </tr>
           </thead>
           <tbody>
-            {sortedBenchmarks.map((entry) => (
-              <tr
-                key={entry.resolution}
-                className={
-                  currentMetrics?.resolution.width === entry.width
-                    ? "active"
-                    : ""
-                }
-              >
-                <td className="resolution">{entry.resolution}</td>
-                <td>{(entry.pixelCount / 1_000_000).toFixed(2)}M</td>
-                <td className="fps">{entry.fps.toFixed(1)}</td>
-                <td>{entry.avgFrameTime.toFixed(1)}ms</td>
-                <td className="efficiency">{calculateEfficiency(entry)}</td>
-              </tr>
-            ))}
+            {sortedBenchmarks.map((entry) => {
+              const isActive = currentMetrics?.resolution.width === entry.width;
+              return (
+                <tr
+                  key={entry.resolution}
+                  className={`border-b hover:bg-muted/50 transition-colors ${
+                    isActive ? "bg-primary/10 border-l-4 border-l-primary" : ""
+                  }`}
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-semibold text-primary">
+                        {entry.resolution}
+                      </span>
+                      {isActive && (
+                        <Badge variant="default" className="text-xs">
+                          Active
+                        </Badge>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 font-mono text-sm text-muted-foreground">
+                    {(entry.pixelCount / 1_000_000).toFixed(2)}M
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge variant="default" className="font-mono">
+                      {entry.fps.toFixed(1)}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 font-mono text-sm">
+                    {entry.avgFrameTime.toFixed(1)}ms
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge variant="secondary" className="font-mono">
+                      {calculateEfficiency(entry)}
+                    </Badge>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
-
-      <style jsx>{`
-        .resolution-benchmark {
-          background: #1a1a1a;
-          border: 1px solid #333;
-          border-radius: 8px;
-          padding: 20px;
-          margin-top: 20px;
-        }
-
-        h3 {
-          color: #00ff00;
-          font-size: 18px;
-          margin: 0 0 16px 0;
-          font-family: monospace;
-        }
-
-        .benchmark-table {
-          overflow-x: auto;
-        }
-
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          font-family: monospace;
-        }
-
-        th {
-          text-align: left;
-          padding: 10px;
-          background: #2a2a2a;
-          color: #888;
-          font-size: 12px;
-          text-transform: uppercase;
-          border-bottom: 2px solid #444;
-        }
-
-        td {
-          padding: 10px;
-          border-bottom: 1px solid #333;
-          color: #aaa;
-        }
-
-        tr.active {
-          background: rgba(0, 255, 0, 0.1);
-          border-left: 3px solid #00ff00;
-        }
-
-        .resolution {
-          color: #00aaff;
-          font-weight: bold;
-        }
-
-        .fps {
-          color: #00ff00;
-          font-weight: bold;
-        }
-
-        .efficiency {
-          color: #ffaa00;
-        }
-
-        tr:hover {
-          background: rgba(255, 255, 255, 0.05);
-        }
-      `}</style>
-    </div>
+    </Card>
   );
 };
