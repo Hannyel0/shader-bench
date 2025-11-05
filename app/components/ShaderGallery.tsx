@@ -562,20 +562,15 @@ export const ShaderGallery: React.FC<ShaderGalleryProps> = ({
                   className="relative aspect-video bg-black"
                   onClick={() => setSelectedShader(shader)}
                 >
-                  {hoveredCard === shader.name ? (
-                    <ShaderCanvas
-                      fragmentShader={shader.fragmentShader}
-                      width={400}
-                      height={225}
-                      className="w-full h-full"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
-                      <div className="text-5xl font-bold text-muted-foreground/30">
-                        {shader.name.slice(0, 2).toUpperCase()}
-                      </div>
-                    </div>
-                  )}
+                  <ShaderCanvas
+                    fragmentShader={shader.fragmentShader}
+                    width={400}
+                    height={225}
+                    className="w-full h-full"
+                    paused={hoveredCard !== shader.name}
+                    pausedTime={0}
+                    onPerformanceUpdate={undefined}
+                  />
 
                   {/* Quick Stats Overlay */}
                   {benchmark && (

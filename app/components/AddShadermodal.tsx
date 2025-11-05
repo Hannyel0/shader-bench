@@ -177,7 +177,9 @@ export const AddShaderModal: React.FC<AddShaderModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto overflow-x-hidden p-0">
+      <DialogContent className={`max-h-[95vh] overflow-y-auto overflow-x-hidden p-0 transition-all duration-500 ease-in-out ${
+        showPreview && validation?.valid ? "max-w-7xl" : "max-w-6xl"
+      }`}>
         <DialogHeader className="p-6 pb-4">
           <DialogTitle className="text-2xl">
             {editShader ? "Edit Shader" : "Add New Shader"}
@@ -294,7 +296,7 @@ export const AddShaderModal: React.FC<AddShaderModalProps> = ({
               }}
               placeholder="Paste your Shadertoy fragment shader code here..."
               rows={20}
-              className="font-mono text-sm"
+              className="font-mono text-sm resize-none overflow-y-auto max-h-[500px]"
               spellCheck={false}
             />
 
@@ -361,7 +363,7 @@ export const AddShaderModal: React.FC<AddShaderModalProps> = ({
 
           {/* Live Preview */}
           {showPreview && validation?.valid && (
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
               <div className="bg-muted/50 p-4 border-b">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -380,13 +382,16 @@ export const AddShaderModal: React.FC<AddShaderModalProps> = ({
                   )}
                 </div>
               </div>
-              <div className="p-4 bg-black flex justify-center">
-                <ShaderCanvas
-                  fragmentShader={fragmentShader}
-                  width={600}
-                  height={400}
-                  onPerformanceUpdate={handlePreviewMetrics}
-                />
+              <div className="p-4 bg-black flex justify-center items-center">
+                <div className="w-full" style={{ maxWidth: '100%' }}>
+                  <ShaderCanvas
+                    fragmentShader={fragmentShader}
+                    width={600}
+                    height={400}
+                    onPerformanceUpdate={handlePreviewMetrics}
+                    className="max-w-full h-auto"
+                  />
+                </div>
               </div>
             </Card>
           )}

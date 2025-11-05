@@ -12,11 +12,21 @@ export class ShaderCompat {
     // Remove any existing #version directive
     let cleanSource = source.replace(/#version\s+\d+\s+es\s*/gi, '');
     
+    // EDIT 1: Log source length before define extraction
+    console.log('🔍 Source length before define extraction:', cleanSource.length);
+    
     // Extract #define statements (must be at top)
     const defines: string[] = [];
     cleanSource = cleanSource.replace(/^(#define\s+.+)$/gm, (match) => {
       defines.push(match);
       return ''; // Remove from source
+    });
+    
+    // EDIT 2: Log after define extraction
+    console.log('🔍 CleanSource after define extraction:', {
+      length: cleanSource.length,
+      startsWithVoid: cleanSource.trim().includes('void mainImage'),
+      firstChars: cleanSource.trim().substring(0, 200)
     });
     
     // Find and extract mainImage function
@@ -68,9 +78,18 @@ void main() {
     mainImageCode: string; 
     remainingCode: string;
   } | null {
-    // Find the start of mainImage function
-    const mainImageRegex = /void\s+mainImage\s*\(\s*out\s+vec4\s+\w+\s*,\s*in\s+vec2\s+\w+\s*\)/;
+    // Find the start of mainImage function (flexible pattern)
+    const mainImageRegex = /void\s+mainImage\s*\(\s*out\s+vec4\s+\w+\s*,\s*(?:in\s+)?vec2\s+\w+\s*\)/;
     const match = source.match(mainImageRegex);
+    
+    // EDIT 3: Log regex match result
+    console.log('🔍 Regex match result:', {
+      matched: !!match,
+      matchedText: match ? match[0] : null,
+      matchIndex: match?.index,
+      sourceLength: source.length,
+      sampleSource: source.substring(0, 500)
+    });
     
     if (!match || match.index === undefined) {
       return null;
@@ -78,6 +97,13 @@ void main() {
     
     const startIndex = match.index;
     const signatureEndIndex = startIndex + match[0].length;
+    
+    // EDIT 4: Log signature extraction
+    console.log('🔍 Signature extraction:', {
+      startIndex,
+      signatureEndIndex,
+      nextChars: source.substring(signatureEndIndex, signatureEndIndex + 50)
+    });
     
     // Find the opening brace
     let braceStart = signatureEndIndex;
