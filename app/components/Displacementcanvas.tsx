@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useRef, useMemo } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import React, { useRef, useMemo, useEffect } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import * as THREE from "three";
 import { NoiseLibrary, NoiseType } from "../utils/Noiselibrary";
@@ -22,13 +22,40 @@ export interface DisplacementParams {
   visualizationMode: "solid" | "height" | "normal" | "wireframe";
 }
 
-interface DisplacementSphereProps {
-  params: DisplacementParams;
+export interface PerformanceMetrics {
+  fps: number;
+  frameTime: number;
+  avgFrameTime: number;
+  minFrameTime: number;
+  maxFrameTime: number;
+  droppedFrames: number;
+  totalFrames: number;
+  gpuTime?: number;
+  resolution: { width: number; height: number };
+  pixelCount: number;
+  triangleCount: number;
+  drawCalls: number;
+  geometryMemory: number;
 }
 
-const DisplacementSphere: React.FC<DisplacementSphereProps> = ({ params }) => {
+interface DisplacementSphereProps {
+  params: DisplacementParams;
+  onPerformanceUpdate?: (metrics: PerformanceMetrics) => void;
+}
+
+const DisplacementSphere: React.FC<DisplacementSphereProps> = ({
+  params,
+  onPerformanceUpdate,
+}) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
+  const { gl, size } = useThree();
+
+  // Performance tracking refs
+  const frameCountRef = useRef(0);
+  const lastTimeRef = useRef(performance.now());
+  const frameTimesRef = useRef<number[]>([]);
+  const lastUpdateTimeRef = useRef(performance.now());
 
   // Generate vertex shader based on noise type
   const vertexShader = useMemo(() => {
@@ -184,7 +211,7 @@ const DisplacementSphere: React.FC<DisplacementSphereProps> = ({ params }) => {
   );
 
   // Update uniforms when params change
-  useMemo(() => {
+  useEffect(() => {
     if (materialRef.current) {
       materialRef.current.uniforms.uAmplitude.value = params.amplitude;
       materialRef.current.uniforms.uFrequency.value = params.frequency;
@@ -208,10 +235,68 @@ const DisplacementSphere: React.FC<DisplacementSphereProps> = ({ params }) => {
     }
   }, [params]);
 
-  // Animation loop
+  // Performance tracking with useFrame
   useFrame((state) => {
+    const currentTime = performance.now();
+
+    // Update shader time
     if (materialRef.current) {
       materialRef.current.uniforms.uTime.value = state.clock.elapsedTime;
+    }
+
+    // Performance metrics calculation
+    frameCountRef.current++;
+    const frameTime = currentTime - lastTimeRef.current;
+    frameTimesRef.current.push(frameTime);
+
+    // Keep only last 120 frames
+    if (frameTimesRef.current.length > 120) {
+      frameTimesRef.current.shift();
+    }
+
+    lastTimeRef.current = currentTime;
+
+    // Update metrics every 10 frames (reduce overhead)
+    if (frameCountRef.current % 10 === 0 && onPerformanceUpdate) {
+      const avgFrameTime =
+        frameTimesRef.current.reduce((sum, t) => sum + t, 0) /
+        frameTimesRef.current.length;
+
+      const fps = 1000 / avgFrameTime;
+      const minFrameTime = Math.min(...frameTimesRef.current);
+      const maxFrameTime = Math.max(...frameTimesRef.current);
+
+      // Calculate dropped frames (frames that took > 20ms = below 50fps)
+      const droppedFrames = frameTimesRef.current.filter((t) => t > 20).length;
+
+      // Calculate triangle count
+      const triangleCount = params.subdivisions * params.subdivisions * 2;
+
+      // Get WebGL info
+      const info = gl.info;
+      const drawCalls = info.render.calls;
+
+      // Estimate geometry memory (vertices * 3 floats * 4 bytes + indices)
+      const vertexCount = (params.subdivisions + 1) * (params.subdivisions + 1);
+      const geometryMemory = vertexCount * 3 * 4 * 3 + triangleCount * 3 * 2; // positions, normals, uvs + indices
+
+      const metrics: PerformanceMetrics = {
+        fps: Math.round(fps * 10) / 10,
+        frameTime: Math.round(frameTime * 100) / 100,
+        avgFrameTime: Math.round(avgFrameTime * 100) / 100,
+        minFrameTime: Math.round(minFrameTime * 100) / 100,
+        maxFrameTime: Math.round(maxFrameTime * 100) / 100,
+        droppedFrames,
+        totalFrames: frameCountRef.current,
+        resolution: { width: size.width, height: size.height },
+        pixelCount: size.width * size.height,
+        triangleCount,
+        drawCalls,
+        geometryMemory,
+      };
+
+      onPerformanceUpdate(metrics);
+      lastUpdateTimeRef.current = currentTime;
     }
   });
 
@@ -232,31 +317,13 @@ const DisplacementSphere: React.FC<DisplacementSphereProps> = ({ params }) => {
 
 interface DisplacementCanvasProps {
   params: DisplacementParams;
-  onPerformanceUpdate?: (fps: number) => void;
+  onPerformanceUpdate?: (metrics: PerformanceMetrics) => void;
 }
 
 export const DisplacementCanvas: React.FC<DisplacementCanvasProps> = ({
   params,
   onPerformanceUpdate,
 }) => {
-  const lastTimeRef = useRef(performance.now());
-  const frameCountRef = useRef(0);
-
-  // FPS monitoring
-  const handleFrame = () => {
-    frameCountRef.current++;
-    if (frameCountRef.current % 30 === 0) {
-      const currentTime = performance.now();
-      const deltaTime = currentTime - lastTimeRef.current;
-      const fps = (30 / deltaTime) * 1000;
-      lastTimeRef.current = currentTime;
-
-      if (onPerformanceUpdate) {
-        onPerformanceUpdate(Math.round(fps));
-      }
-    }
-  };
-
   return (
     <Canvas
       gl={{
@@ -268,7 +335,6 @@ export const DisplacementCanvas: React.FC<DisplacementCanvasProps> = ({
       onCreated={({ gl }) => {
         gl.setClearColor(0x0a0a0a, 1);
       }}
-      onPointerMissed={handleFrame}
     >
       <PerspectiveCamera makeDefault position={[0, 0, 3]} fov={50} />
       <OrbitControls
@@ -286,7 +352,10 @@ export const DisplacementCanvas: React.FC<DisplacementCanvasProps> = ({
       <directionalLight position={[-5, -5, -5]} intensity={0.3} />
 
       {/* Displacement Sphere */}
-      <DisplacementSphere params={params} />
+      <DisplacementSphere
+        params={params}
+        onPerformanceUpdate={onPerformanceUpdate}
+      />
 
       {/* Grid Helper */}
       <gridHelper args={[10, 10, 0x444444, 0x222222]} position={[0, -1.5, 0]} />
