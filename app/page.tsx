@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Zap, Activity, Code, Gauge } from "lucide-react";
+import { Zap, Activity, Code, Gauge, Waves } from "lucide-react";
 
 export default function Home() {
   return (
@@ -46,6 +46,16 @@ export default function Home() {
               <Button size="lg" className="text-lg px-8 h-12">
                 <Activity className="mr-2 h-5 w-5" />
                 Launch Gallery
+              </Button>
+            </Link>
+            <Link href="/displacement">
+              <Button
+                size="lg"
+                variant="default"
+                className="text-lg px-8 h-12 bg-primary/90 hover:bg-primary"
+              >
+                <Waves className="mr-2 h-5 w-5" />
+                Displacement Lab
               </Button>
             </Link>
             <Link href="/shaders">
@@ -96,6 +106,31 @@ export default function Home() {
             </Card>
           </div>
 
+          {/* New Displacement Lab Section */}
+          <div className="mt-16 pt-12 border-t border-border/40">
+            <div className="max-w-3xl mx-auto">
+              <Badge className="mb-4" variant="secondary">
+                <Waves className="w-3 h-3 mr-1" />
+                New: Displacement Lab
+              </Badge>
+              <h2 className="text-3xl font-bold mb-4">
+                Procedural Displacement Testing
+              </h2>
+              <p className="text-lg text-muted-foreground mb-6">
+                Real-time 3D noise function visualization with interactive
+                parameter control. Test Perlin, Simplex, Voronoi, FBM, and more
+                on a dynamic sphere geometry with vertex displacement.
+              </p>
+              <div className="flex gap-3 justify-center flex-wrap">
+                <Badge variant="outline">Three.js</Badge>
+                <Badge variant="outline">React Three Fiber</Badge>
+                <Badge variant="outline">8+ Noise Functions</Badge>
+                <Badge variant="outline">Real-time Displacement</Badge>
+                <Badge variant="outline">GLSL Shaders</Badge>
+              </div>
+            </div>
+          </div>
+
           {/* Tech Stack */}
           <div className="pt-12 space-y-4">
             <p className="text-sm text-muted-foreground font-medium">
@@ -105,6 +140,7 @@ export default function Home() {
               <Badge variant="secondary">Next.js 16</Badge>
               <Badge variant="secondary">React 19</Badge>
               <Badge variant="secondary">WebGL2</Badge>
+              <Badge variant="secondary">Three.js</Badge>
               <Badge variant="secondary">TypeScript 5</Badge>
               <Badge variant="secondary">Tailwind v4</Badge>
             </div>

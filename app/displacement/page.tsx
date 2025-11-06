@@ -1,12 +1,12 @@
 "use client";
 
-import { ShaderGallery } from "../components/ShaderGallery";
+import { DisplacementViewer } from "../components/Displacementviewer";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Zap, Home, Waves } from "lucide-react";
 
-export default function ShadersPage() {
+export default function DisplacementPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
       {/* Header */}
@@ -14,21 +14,23 @@ export default function ShadersPage() {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-lg bg-primary/10">
-              <Zap className="h-6 w-6 text-primary" />
+              <Waves className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl font-bold">Shader Bench</h1>
-              <p className="text-xs text-muted-foreground">Performance Gallery</p>
+              <h1 className="text-xl font-bold">Displacement Lab</h1>
+              <p className="text-xs text-muted-foreground">
+                Procedural Texture Testing
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <Badge variant="outline" className="text-xs">
-              WebGL2 Performance Profiler
+              Three.js Displacement Engine
             </Badge>
-            <Link href="/displacement">
+            <Link href="/shaders">
               <Button variant="outline" size="sm">
-                <Waves className="w-4 h-4 mr-2" />
-                Displacement Lab
+                <Zap className="w-4 h-4 mr-2" />
+                Shader Gallery
               </Button>
             </Link>
             <Link href="/">
@@ -43,7 +45,16 @@ export default function ShadersPage() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <ShaderGallery defaultView="grid" width={700} height={500} />
+        <div className="mb-6 space-y-2">
+          <h2 className="text-3xl font-bold">
+            Procedural Displacement Testing
+          </h2>
+          <p className="text-muted-foreground">
+            Real-time noise function visualization on 3D sphere geometry with
+            interactive parameter control
+          </p>
+        </div>
+        <DisplacementViewer />
       </main>
     </div>
   );
