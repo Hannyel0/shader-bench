@@ -302,6 +302,28 @@ Wireframe: ${params.wireframe}
           </div>
         </Card>
 
+        {/* 3D Canvas */}
+        <Card className="overflow-hidden">
+          <div
+            className="bg-black border-2 border-border/50"
+            style={{ aspectRatio: "16/10" }}
+          >
+            <DisplacementCanvas
+              params={params}
+              onPerformanceUpdate={handlePerformanceUpdate}
+            />
+          </div>
+          <div className="p-4 bg-muted/30">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Badge variant="secondary" className="text-xs">
+                {params.noiseType}
+              </Badge>
+              <span>•</span>
+              <span>Drag to rotate • Scroll to zoom • Right-click to pan</span>
+            </div>
+          </div>
+        </Card>
+
         {/* Advanced Performance Metrics */}
         {metrics && (
           <Card className="p-6 bg-gradient-to-br from-card to-card/50">
@@ -509,28 +531,6 @@ Wireframe: ${params.wireframe}
             )}
           </Card>
         )}
-
-        {/* 3D Canvas */}
-        <Card className="overflow-hidden">
-          <div
-            className="bg-black border-2 border-border/50"
-            style={{ aspectRatio: "16/10" }}
-          >
-            <DisplacementCanvas
-              params={params}
-              onPerformanceUpdate={handlePerformanceUpdate}
-            />
-          </div>
-          <div className="p-4 bg-muted/30">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Badge variant="secondary" className="text-xs">
-                {params.noiseType}
-              </Badge>
-              <span>•</span>
-              <span>Drag to rotate • Scroll to zoom • Right-click to pan</span>
-            </div>
-          </div>
-        </Card>
 
         {/* Shader Code Export */}
         {showCode && (

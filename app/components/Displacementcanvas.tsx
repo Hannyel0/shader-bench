@@ -304,6 +304,7 @@ const DisplacementSphere: React.FC<DisplacementSphereProps> = ({
     <mesh ref={meshRef}>
       <sphereGeometry args={[1, params.subdivisions, params.subdivisions]} />
       <shaderMaterial
+        key={params.noiseType} // Force material recreation when noise type changes
         ref={materialRef}
         vertexShader={vertexShader}
         fragmentShader={fragmentShader}
