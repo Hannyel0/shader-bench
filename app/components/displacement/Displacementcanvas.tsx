@@ -7,7 +7,7 @@ import * as THREE from "three";
 import { NoiseLibrary, NoiseType } from "../../utils/Noiselibrary";
 
 export interface DisplacementParams {
-  noiseType: NoiseType;
+  noiseType: "perlin" | "simplex" | "voronoi" | "voronoiF2" | "voronoiF2MinusF1" | "fbmPerlin" | "fbmSimplex" | "turbulence" | "ridge" | "domainWarp" | "cellular";
   amplitude: number;
   frequency: number;
   octaves: number;
@@ -31,7 +31,6 @@ export interface PerformanceMetrics {
   maxFrameTime: number;
   droppedFrames: number;
   totalFrames: number;
-  gpuTime?: number;
   resolution: { width: number; height: number };
   pixelCount: number;
   triangleCount: number;
@@ -54,9 +53,9 @@ const DisplacementSphere: React.FC<DisplacementSphereProps> = ({
 
   // Performance tracking refs
   const frameCountRef = useRef(0);
-  const lastTimeRef = useRef(performance.now());
+  const lastTimeRef = useRef(0);
   const frameTimesRef = useRef<number[]>([]);
-  const lastUpdateTimeRef = useRef(performance.now());
+  const lastUpdateTimeRef = useRef(0);
 
   // Generate vertex shader based on noise type
   const vertexShader = useMemo(() => {
@@ -232,6 +231,7 @@ const DisplacementSphere: React.FC<DisplacementSphereProps> = ({
       },
       uRoughness: { value: params.roughness },
     }),
+    // Uniforms are created once and updated via useEffect
     []
   );
 
@@ -260,6 +260,12 @@ const DisplacementSphere: React.FC<DisplacementSphereProps> = ({
       materialRef.current.wireframe = params.wireframe;
     }
   }, [params]);
+
+  // Initialize performance tracking on mount
+  useEffect(() => {
+    lastTimeRef.current = performance.now();
+    lastUpdateTimeRef.current = performance.now();
+  }, []);
 
   // Performance tracking with useFrame
   useFrame((state) => {
