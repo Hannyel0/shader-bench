@@ -2,9 +2,9 @@
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { ShaderCanvas, PerformanceMetrics } from "./ShaderCanvas";
-import { PerformanceMonitor } from "./PerformanceMonitor";
-import { PerformanceOverlay } from "./PerformanceOverlay";
-import { ResolutionBenchmark } from "./ResolutionBenchmark";
+import { PerformanceMonitor } from "../PerformanceMonitor";
+import { PerformanceOverlay } from "../PerformanceOverlay";
+import { ResolutionBenchmark } from "../ResolutionBenchmark";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

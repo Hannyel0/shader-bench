@@ -7,7 +7,7 @@
  * - Features: CRUD operations, import/export, validation
  */
 
-import { ShaderDefinition } from "../components/ShaderViewer";
+import { ShaderDefinition } from "../components/shaders/ShaderViewer";
 import { ShaderCompat } from "./ShaderCompact";
 
 export interface StoredShader extends ShaderDefinition {

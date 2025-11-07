@@ -6,7 +6,7 @@
 import {
   DisplacementParams,
   PerformanceMetrics,
-} from "../components/Displacementcanvas";
+} from "../components/displacement/Displacementcanvas";
 import { NoiseLibrary, NoiseType, NoiseConfigs } from "./Noiselibrary";
 
 export interface DisplacementExportData {

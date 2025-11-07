@@ -1,6 +1,6 @@
 "use client";
 
-import { ShaderGallery } from "../components/ShaderGallery";
+import { ShaderGallery } from "../components/shaders/ShaderGallery";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

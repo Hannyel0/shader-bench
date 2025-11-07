@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from "react";
 import { ShaderDefinition } from "./ShaderViewer";
-import { ShaderManager, ShaderValidationResult } from "../utils/ShaderManager";
+import { ShaderManager, ShaderValidationResult } from "../../utils/ShaderManager";
 import { ShaderCanvas, PerformanceMetrics } from "./ShaderCanvas";
 import {
   Dialog,

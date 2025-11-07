@@ -1,6 +1,6 @@
 "use client";
 
-import { DisplacementViewer } from "../components/Displacementviewer";
+import { DisplacementViewer } from "../components/displacement/Displacementviewer";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { PerformanceMetrics } from "./ShaderCanvas";
+import { PerformanceMetrics } from "./shaders/ShaderCanvas";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AreaChart } from "@tremor/react";

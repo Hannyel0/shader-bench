@@ -6,7 +6,7 @@ import {
   DisplacementParams,
   PerformanceMetrics,
 } from "./Displacementcanvas";
-import { NoiseType, PRESETS, NoiseLibrary } from "../utils/Noiselibrary";
+import { NoiseType, PRESETS, NoiseLibrary } from "../../utils/Noiselibrary";
 import { NoiseControls } from "./Noisecontrols";
 import { DisplacementConfigManager } from "./DisplacementConfigManager";
 import { Card } from "@/components/ui/card";

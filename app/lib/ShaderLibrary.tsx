@@ -1,4 +1,4 @@
-import { ShaderDefinition } from "../components/ShaderViewer";
+import { ShaderDefinition } from "../components/shaders/ShaderViewer";
 
 export const exampleShaders: ShaderDefinition[] = [
   {

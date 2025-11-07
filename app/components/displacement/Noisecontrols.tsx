@@ -2,7 +2,7 @@
 
 import React from "react";
 import { DisplacementParams } from "./Displacementcanvas";
-import { NoiseType, NoiseConfigs } from "../utils/Noiselibrary";
+import { NoiseType, NoiseConfigs } from "../../utils/Noiselibrary";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";

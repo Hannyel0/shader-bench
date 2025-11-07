@@ -5,7 +5,7 @@ import { DisplacementParams, PerformanceMetrics } from "./Displacementcanvas";
 import {
   DisplacementExporter,
   DisplacementExportData,
-} from "../utils/DisplacementExporter";
+} from "../../utils/DisplacementExporter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

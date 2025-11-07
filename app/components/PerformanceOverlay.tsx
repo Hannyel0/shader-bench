@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { PerformanceMetrics } from "./ShaderCanvas";
+import { PerformanceMetrics } from "./shaders/ShaderCanvas";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
