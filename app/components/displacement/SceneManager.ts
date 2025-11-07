@@ -3,10 +3,41 @@
  * Handles multi-object state, selection, and CRUD operations
  */
 
-import { DisplacementParams } from "./Displacementcanvas";
 import * as THREE from "three";
 
 export type GeometryType = "sphere" | "plane" | "box" | "torus" | "cylinder";
+
+export interface DisplacementParams {
+  noiseType: "perlin" | "simplex" | "voronoi" | "voronoiF2" | "voronoiF2MinusF1" | "fbmPerlin" | "fbmSimplex" | "turbulence" | "ridge" | "domainWarp" | "cellular";
+  amplitude: number;
+  frequency: number;
+  octaves: number;
+  lacunarity: number;
+  gain: number;
+  ridgeOffset: number;
+  warpStrength: number;
+  uvScale: number;
+  animationSpeed: number;
+  wireframe: boolean;
+  subdivisions: number;
+  visualizationMode: "solid" | "height" | "normal" | "wireframe";
+  roughness: number;
+}
+
+export interface PerformanceMetrics {
+  fps: number;
+  frameTime: number;
+  avgFrameTime: number;
+  minFrameTime: number;
+  maxFrameTime: number;
+  droppedFrames: number;
+  totalFrames: number;
+  resolution: { width: number; height: number };
+  pixelCount: number;
+  triangleCount: number;
+  drawCalls: number;
+  geometryMemory: number;
+}
 
 export interface MaterialProperties {
   color: string;

@@ -8,11 +8,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { SceneObject } from "./SceneManager";
-import { NoiseControls } from "./Noisecontrolsadapter";
+import { SceneObject, DisplacementParams } from "./SceneManager";
+import { NoiseControls } from "./Noisecontrols";
 import { TransformTab } from "./TransformTab";
 import { MaterialTab } from "./MaterialTab";
-import { DisplacementParams } from "./Displacementcanvas";
 import { Waves, Move, Palette } from "lucide-react";
 
 interface ObjectPropertiesPanelProps {
@@ -87,7 +86,8 @@ export const ObjectPropertiesPanel: React.FC<ObjectPropertiesPanelProps> = ({
               <div className="px-3 pb-3">
                 <NoiseControls
                   params={object.displacement}
-                  onChange={onDisplacementChange}
+                  onParamsChange={onDisplacementChange}
+                  onPresetLoad={onDisplacementChange}
                 />
               </div>
             </AccordionContent>

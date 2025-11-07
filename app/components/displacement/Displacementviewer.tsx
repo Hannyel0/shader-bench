@@ -11,8 +11,9 @@ import {
   SceneObject,
   GeometryType,
   createSceneObject,
+  DisplacementParams,
+  PerformanceMetrics,
 } from "./SceneManager";
-import { DisplacementParams, PerformanceMetrics } from "./Displacementcanvas";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";

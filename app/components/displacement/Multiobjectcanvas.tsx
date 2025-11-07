@@ -5,8 +5,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera, Grid } from "@react-three/drei";
 import { TransformableObject } from "./TransformableObject";
 import { ObjectTransformControls } from "./ObjectTransformControls";
-import { SceneObject } from "./SceneManager";
-import { PerformanceMetrics } from "./Displacementcanvas";
+import { SceneObject, PerformanceMetrics } from "./SceneManager";
 
 interface MultiObjectCanvasProps {
   objects: SceneObject[];

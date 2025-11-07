@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { DisplacementParams, PerformanceMetrics } from "./Displacementcanvas";
+import { DisplacementParams, PerformanceMetrics } from "./SceneManager";
 import {
   DisplacementExporter,
   DisplacementExportData,
