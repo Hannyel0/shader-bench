@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useRef, useMemo, useCallback } from "react";
-import { useFrame } from "@react-three/fiber";
+import React, { useRef, useMemo, useCallback, useImperativeHandle } from "react";
+import { useFrame, ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import { NoiseLibrary, NoiseType } from "../../utils/Noiselibrary";
 import { SceneObject, GeometryType, geometryCache } from "./SceneManager";
@@ -16,13 +16,15 @@ interface TransformableObjectProps {
   ) => void;
 }
 
-export const TransformableObject: React.FC<TransformableObjectProps> = ({
-  object,
-  isSelected,
-  onSelect,
-}) => {
+export const TransformableObject = React.forwardRef<
+  THREE.Mesh,
+  TransformableObjectProps
+>(({ object, isSelected, onSelect }, forwardedRef) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
+
+  // Expose mesh ref to parent for transform controls
+  useImperativeHandle(forwardedRef, () => meshRef.current!);
 
   const { displacement, transform, type, visible } = object;
 
@@ -231,7 +233,7 @@ export const TransformableObject: React.FC<TransformableObjectProps> = ({
 
   // Handle click for selection
   const handleClick = useCallback(
-    (event: any) => {
+    (event: ThreeEvent<MouseEvent>) => {
       event.stopPropagation();
       onSelect(object.id);
     },
@@ -263,7 +265,7 @@ export const TransformableObject: React.FC<TransformableObjectProps> = ({
         ref={meshRef}
         geometry={geometry}
         onClick={handleClick}
-        onPointerOver={(e: any) => {
+        onPointerOver={(e: ThreeEvent<PointerEvent>) => {
           e.stopPropagation();
           document.body.style.cursor = "pointer";
         }}
@@ -283,7 +285,9 @@ export const TransformableObject: React.FC<TransformableObjectProps> = ({
       </mesh>
     </group>
   );
-};
+});
+
+TransformableObject.displayName = "TransformableObject";
 
 // Helper: Create geometry based on type
 function createGeometry(

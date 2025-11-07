@@ -3,9 +3,11 @@
 import React, { useRef, useEffect } from "react";
 import { TransformControls as DreiTransformControls } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
+import * as THREE from "three";
 import { SceneObject } from "./SceneManager";
 
 interface ObjectTransformControlsProps {
+  targetMesh: THREE.Mesh | null;
   object: SceneObject | null;
   mode: "translate" | "rotate" | "scale";
   onTransformChange: (
@@ -14,18 +16,32 @@ interface ObjectTransformControlsProps {
   ) => void;
 }
 
-export const ObjectTransformControls: React.FC<ObjectTransformControlsProps> = ({ object, mode, onTransformChange }) => {
+export const ObjectTransformControls: React.FC<ObjectTransformControlsProps> = ({
+  targetMesh,
+  object,
+  mode,
+  onTransformChange,
+}) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controlsRef = useRef<any>(null);
   const { gl } = useThree();
-
-  // Track if currently dragging to debounce updates
+  
+  // Track if we're actively dragging to prevent state thrashing
   const isDraggingRef = useRef(false);
+  const lastUpdateTimeRef = useRef(0);
 
   useEffect(() => {
-    if (!controlsRef.current || !object) return;
+    if (!controlsRef.current || !object || !targetMesh) return;
 
     const controls = controlsRef.current;
+    
+    // Attach controls to the actual mesh
+    controls.attach(targetMesh);
+
+    // Allow clicks to pass through to mesh when controls are active
+    if (controls.object) {
+      controls.getRaycaster = () => null; // Disable controls raycasting for selection
+    }
 
     // Handle drag start
     const onDragStart = () => {
@@ -33,52 +49,61 @@ export const ObjectTransformControls: React.FC<ObjectTransformControlsProps> = (
       gl.domElement.style.cursor = "grabbing";
     };
 
-    // Handle drag end - emit final transform
-    const onDragEnd = () => {
-      isDraggingRef.current = false;
-      gl.domElement.style.cursor = "default";
+    // Handle continuous transform changes during drag
+    const onObjectChange = () => {
+      if (!isDraggingRef.current || !targetMesh) return;
 
-      if (controls.object) {
-        const updates: Partial<SceneObject["transform"]> = {};
+      // Throttle updates to avoid state thrashing (update every 16ms = ~60fps)
+      const now = performance.now();
+      if (now - lastUpdateTimeRef.current < 16) return;
+      lastUpdateTimeRef.current = now;
 
-        if (mode === "translate") {
-          const pos = controls.object.position;
-          updates.position = [pos.x, pos.y, pos.z];
-        } else if (mode === "rotate") {
-          const rot = controls.object.rotation;
-          updates.rotation = [rot.x, rot.y, rot.z];
-        } else if (mode === "scale") {
-          const scale = controls.object.scale;
-          updates.scale = [scale.x, scale.y, scale.z];
-        }
+      // Read current transform from the mesh (which TransformControls is manipulating)
+      const updates: Partial<SceneObject["transform"]> = {};
 
-        onTransformChange(object.id, updates);
+      if (mode === "translate") {
+        const pos = targetMesh.position;
+        updates.position = [pos.x, pos.y, pos.z];
+      } else if (mode === "rotate") {
+        const rot = targetMesh.rotation;
+        updates.rotation = [rot.x, rot.y, rot.z];
+      } else if (mode === "scale") {
+        const scale = targetMesh.scale;
+        updates.scale = [scale.x, scale.y, scale.z];
+      }
+
+      // Update state in real-time
+      onTransformChange(object.id, updates);
+    };
+
+    // Handle drag end
+    const onDragEnd = (event: any) => {
+      if (!event.value) {
+        isDraggingRef.current = false;
+        gl.domElement.style.cursor = "default";
+        
+        // Final update on drag end
+        onObjectChange();
       }
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    controls.addEventListener("dragging-changed", (event: any) => {
-      if (event.value) {
-        onDragStart();
-      } else {
-        onDragEnd();
-      }
-    });
+    // Subscribe to events
+    controls.addEventListener("dragging-changed", onDragEnd);
+    controls.addEventListener("objectChange", onObjectChange);
 
     return () => {
-      controls.removeEventListener("dragging-changed", onDragStart);
+      controls.removeEventListener("dragging-changed", onDragEnd);
+      controls.removeEventListener("objectChange", onObjectChange);
+      controls.detach();
     };
-  }, [object, mode, onTransformChange, gl]);
+  }, [targetMesh, object, mode, onTransformChange, gl]);
 
-  if (!object) return null;
+  if (!object || !targetMesh) return null;
 
   return (
     <DreiTransformControls
       ref={controlsRef}
       mode={mode}
-      position={object.transform.position}
-      rotation={object.transform.rotation}
-      scale={object.transform.scale}
       size={0.8}
       showX={true}
       showY={true}

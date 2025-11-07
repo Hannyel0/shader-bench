@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useCallback } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera, Grid } from "@react-three/drei";
+import * as THREE from "three";
 import { TransformableObject } from "./TransformableObject";
 import { ObjectTransformControls } from "./ObjectTransformControls";
 import { SceneObject, PerformanceMetrics } from "./SceneManager";
@@ -114,6 +115,17 @@ export const MultiObjectCanvas: React.FC<MultiObjectCanvasProps> = ({
 }) => {
   const selectedObject = objects.find((obj) => obj.id === selectedId) || null;
 
+  // Track mesh references for each object
+  const meshRefsMap = useRef<Map<string, THREE.Mesh>>(new Map());
+
+  const setMeshRef = useCallback((id: string, mesh: THREE.Mesh | null) => {
+    if (mesh) {
+      meshRefsMap.current.set(id, mesh);
+    } else {
+      meshRefsMap.current.delete(id);
+    }
+  }, []);
+
   return (
     <Canvas
       gl={{
@@ -124,10 +136,6 @@ export const MultiObjectCanvas: React.FC<MultiObjectCanvasProps> = ({
       dpr={[1, 2]}
       onCreated={({ gl }) => {
         gl.setClearColor(0x0a0a0a, 1);
-      }}
-      onClick={() => {
-        // Deselect when clicking empty space
-        onSelect(null);
       }}
     >
       <PerspectiveCamera makeDefault position={[0, 2, 5]} fov={50} />
@@ -163,10 +171,23 @@ export const MultiObjectCanvas: React.FC<MultiObjectCanvasProps> = ({
         position={[0, -1.5, 0]}
       />
 
-      {/* Render all scene objects */}
+      {/* Background plane for "empty space" click detection */}
+      <mesh
+        position={[0, 0, -10]}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect(null);
+        }}
+      >
+        <planeGeometry args={[1000, 1000]} />
+        <meshBasicMaterial transparent opacity={0} />
+      </mesh>
+
+      {/* Render all scene objects with ref tracking */}
       {objects.map((obj) => (
         <TransformableObject
           key={obj.id}
+          ref={(mesh) => setMeshRef(obj.id, mesh)}
           object={obj}
           isSelected={selectedId === obj.id}
           onSelect={onSelect}
@@ -174,9 +195,10 @@ export const MultiObjectCanvas: React.FC<MultiObjectCanvasProps> = ({
         />
       ))}
 
-      {/* Transform controls for selected object */}
+      {/* Transform controls with direct mesh reference */}
       {selectedObject && (
         <ObjectTransformControls
+          targetMesh={meshRefsMap.current.get(selectedObject.id) || null}
           object={selectedObject}
           mode={transformMode}
           onTransformChange={onTransformChange}
