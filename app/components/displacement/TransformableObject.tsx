@@ -176,7 +176,7 @@ export const TransformableObject: React.FC<TransformableObjectProps> = ({
       uWarpStrength: { value: displacement.warpStrength },
       uUVScale: { value: displacement.uvScale },
       uAnimationSpeed: { value: displacement.animationSpeed },
-      uColor: { value: new THREE.Color(0x4a9eff) },
+      uColor: { value: new THREE.Color(object.material.color) },
       uVisualizationMode: {
         value:
           displacement.visualizationMode === "solid"
@@ -187,7 +187,7 @@ export const TransformableObject: React.FC<TransformableObjectProps> = ({
             ? 2
             : 3,
       },
-      uRoughness: { value: displacement.roughness },
+      uRoughness: { value: object.material.roughness },
       uSelected: { value: isSelected },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -215,11 +215,12 @@ export const TransformableObject: React.FC<TransformableObjectProps> = ({
           : displacement.visualizationMode === "normal"
           ? 2
           : 3;
-      mat.uniforms.uRoughness.value = displacement.roughness;
+      mat.uniforms.uColor.value.set(object.material.color);
+      mat.uniforms.uRoughness.value = object.material.roughness;
       mat.uniforms.uSelected.value = isSelected;
       mat.wireframe = displacement.wireframe;
     }
-  }, [displacement, isSelected]);
+  }, [displacement, object.material, isSelected]);
 
   // Animate shader time
   useFrame((state) => {

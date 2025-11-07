@@ -3,7 +3,7 @@
 import React, { useState, useReducer, useCallback, useEffect } from "react";
 import { MultiObjectCanvas } from "./Multiobjectcanvas";
 import { ObjectListPanel } from "./ObjectListPanel";
-import { NoiseControls } from "./Noisecontrolsadapter";
+import { ObjectPropertiesPanel } from "./ObjectPropertiesPanel";
 import { TransformToolbar } from "./TransformToolbar";
 import {
   sceneReducer,
@@ -20,10 +20,12 @@ import {
   Zap,
   Home,
   Waves,
-  Settings,
   Info,
   ChevronLeft,
   ChevronRight,
+  Move,
+  Palette,
+  Settings2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -88,6 +90,19 @@ export const DisplacementViewer: React.FC = () => {
           type: "UPDATE_DISPLACEMENT",
           id: selectedObject.id,
           displacement: updates,
+        });
+      }
+    },
+    [selectedObject]
+  );
+
+  const handleMaterialChange = useCallback(
+    (updates: Partial<SceneObject["material"]>) => {
+      if (selectedObject) {
+        dispatch({
+          type: "UPDATE_MATERIAL",
+          id: selectedObject.id,
+          material: updates,
         });
       }
     },
@@ -217,7 +232,7 @@ export const DisplacementViewer: React.FC = () => {
         </div>
       </div>
 
-      {/* Right Panel: Displacement Controls */}
+      {/* Right Panel: Property Controls */}
       <div className="absolute right-0 top-0 bottom-0 z-40 pointer-events-none">
         <div className="flex h-full items-center">
           {/* Panel */}
@@ -227,15 +242,17 @@ export const DisplacementViewer: React.FC = () => {
               transition-all duration-300 ease-in-out
               ${rightPanelOpen ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full"}
             `}
-            style={{ width: rightPanelOpen ? "280px" : "0px" }}
+            style={{ width: rightPanelOpen ? "300px" : "0px" }}
           >
             {rightPanelOpen && selectedObject && (
-              <div className="h-full bg-black/60 backdrop-blur-md border border-white/10 rounded-lg overflow-hidden">
-                <NoiseControls
-                  params={selectedObject.displacement}
-                  onChange={handleDisplacementChange}
-                />
-              </div>
+              <ObjectPropertiesPanel
+                object={selectedObject}
+                onDisplacementChange={handleDisplacementChange}
+                onTransformChange={(transform) =>
+                  handleTransformChange(selectedObject.id, transform)
+                }
+                onMaterialChange={handleMaterialChange}
+              />
             )}
           </div>
 

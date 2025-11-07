@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -45,15 +44,7 @@ export const NoiseControls: React.FC<NoiseControlsProps> = ({
   };
 
   return (
-    <div className="w-full h-full flex flex-col">
-      {/* Header */}
-      <div className="p-3 border-b border-white/10">
-        <h3 className="font-semibold text-sm text-white">Displacement Controls</h3>
-      </div>
-
-      {/* Scrollable Content */}
-      <ScrollArea className="flex-1">
-        <div className="p-3 space-y-3">
+    <div className="w-full space-y-3">
           {/* Noise Type Selection */}
           <div className="space-y-2">
             <Label className="text-xs text-gray-300">Noise Function</Label>
@@ -410,8 +401,6 @@ export const NoiseControls: React.FC<NoiseControlsProps> = ({
               </Button>
             </div>
           </div>
-        </div>
-      </ScrollArea>
     </div>
   );
 };

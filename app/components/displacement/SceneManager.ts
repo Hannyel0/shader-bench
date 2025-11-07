@@ -8,11 +8,20 @@ import * as THREE from "three";
 
 export type GeometryType = "sphere" | "plane" | "box" | "torus" | "cylinder";
 
+export interface MaterialProperties {
+  color: string;
+  roughness: number;
+  metalness: number;
+  opacity: number;
+  emissiveIntensity: number;
+}
+
 export interface SceneObject {
   id: string;
   name: string;
   type: GeometryType;
   displacement: DisplacementParams;
+  material: MaterialProperties;
   transform: {
     position: [number, number, number];
     rotation: [number, number, number];
@@ -61,6 +70,17 @@ export function generateObjectId(): string {
   return `object-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
+// Create default material properties for new objects
+export function createDefaultMaterial(): MaterialProperties {
+  return {
+    color: "#4a9eff",
+    roughness: 0.5,
+    metalness: 0.0,
+    opacity: 1.0,
+    emissiveIntensity: 0.0,
+  };
+}
+
 // Create default displacement params for new objects
 export function createDefaultDisplacementParams(): DisplacementParams {
   return {
@@ -93,6 +113,7 @@ export function createSceneObject(
     }`,
     type,
     displacement: createDefaultDisplacementParams(),
+    material: createDefaultMaterial(),
     transform: {
       position,
       rotation: [0, 0, 0],
@@ -117,6 +138,11 @@ export type SceneAction =
       type: "UPDATE_TRANSFORM";
       id: string;
       transform: Partial<SceneObject["transform"]>;
+    }
+  | {
+      type: "UPDATE_MATERIAL";
+      id: string;
+      material: Partial<MaterialProperties>;
     }
   | { type: "DUPLICATE_OBJECT"; id: string }
   | { type: "TOGGLE_VISIBILITY"; id: string }
@@ -177,6 +203,19 @@ export function sceneReducer(
             ? {
                 ...obj,
                 transform: { ...obj.transform, ...action.transform },
+              }
+            : obj
+        ),
+      };
+
+    case "UPDATE_MATERIAL":
+      return {
+        ...state,
+        objects: state.objects.map((obj) =>
+          obj.id === action.id
+            ? {
+                ...obj,
+                material: { ...obj.material, ...action.material },
               }
             : obj
         ),
