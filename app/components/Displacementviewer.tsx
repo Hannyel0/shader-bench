@@ -6,26 +6,25 @@ import {
   DisplacementParams,
   PerformanceMetrics,
 } from "./Displacementcanvas";
-import { NoiseType, PRESETS } from "../utils/Noiselibrary";
+import { NoiseType, PRESETS, NoiseLibrary } from "../utils/Noiselibrary";
 import { NoiseControls } from "./Noisecontrols";
+import { DisplacementConfigManager } from "./DisplacementConfigManager";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
-  Download,
-  Copy,
-  CheckCircle,
   Activity,
-  Code,
   Eye,
   EyeOff,
   TrendingUp,
   Cpu,
   MemoryStick,
   Triangle,
+  Zap,
+  Code,
+  Copy,
 } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
 
 export const DisplacementViewer: React.FC = () => {
   const [params, setParams] = useState<DisplacementParams>(PRESETS.default);
@@ -34,8 +33,6 @@ export const DisplacementViewer: React.FC = () => {
     []
   );
   const [showCode, setShowCode] = useState(false);
-  const [copiedConfig, setCopiedConfig] = useState(false);
-  const [copiedShader, setCopiedShader] = useState(false);
 
   const handleParamsChange = useCallback(
     (newParams: Partial<DisplacementParams>) => {
@@ -63,88 +60,10 @@ export const DisplacementViewer: React.FC = () => {
     []
   );
 
-  const exportConfig = () => {
-    const config = JSON.stringify(params, null, 2);
-    const blob = new Blob([config], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `displacement-config-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const exportMetrics = () => {
-    if (!metrics) return;
-
-    const avgMetrics =
-      metricsHistory.length > 0
-        ? calculateAverageMetrics(metricsHistory)
-        : metrics;
-
-    const data = {
-      shader: "Displacement Sphere",
-      noiseType: params.noiseType,
-      subdivisions: params.subdivisions,
-      timestamp: new Date().toISOString(),
-      currentMetrics: metrics,
-      averageMetrics: avgMetrics,
-      samples: metricsHistory.length,
-    };
-
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `displacement-metrics-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const copyConfigToClipboard = async () => {
-    const config = JSON.stringify(params, null, 2);
-    await navigator.clipboard.writeText(config);
-    setCopiedConfig(true);
-    setTimeout(() => setCopiedConfig(false), 2000);
-  };
-
-  const copyShaderCode = async () => {
-    const shaderCode = generateShaderCode();
-    await navigator.clipboard.writeText(shaderCode);
-    setCopiedShader(true);
-    setTimeout(() => setCopiedShader(false), 2000);
-  };
-
-  const generateShaderCode = (): string => {
-    return `// Generated Displacement Shader Configuration
-// Noise Type: ${params.noiseType}
-
-// Vertex Shader Parameters
-uniform float uAmplitude: ${params.amplitude};
-uniform float uFrequency: ${params.frequency};
-uniform int uOctaves: ${params.octaves};
-uniform float uLacunarity: ${params.lacunarity};
-uniform float uGain: ${params.gain};
-uniform float uRidgeOffset: ${params.ridgeOffset};
-uniform float uWarpStrength: ${params.warpStrength};
-uniform float uUVScale: ${params.uvScale};
-uniform float uAnimationSpeed: ${params.animationSpeed};
-
-// Geometry
-Subdivisions: ${params.subdivisions}×${params.subdivisions}
-Triangle Count: ${params.subdivisions * params.subdivisions * 2}
-
-// Visualization
-Mode: ${params.visualizationMode}
-Wireframe: ${params.wireframe}
-
-// Usage:
-// Apply these parameters to your custom displacement shader
-// for identical results in your Three.js/Unity/Unreal Engine project.
-`;
-  };
+  const handleImport = useCallback((importedParams: DisplacementParams) => {
+    setParams(importedParams);
+    setMetricsHistory([]);
+  }, []);
 
   const calculateAverageMetrics = (
     history: PerformanceMetrics[]
@@ -222,152 +141,177 @@ Wireframe: ${params.wireframe}
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium">Performance</span>
+                <Activity className="w-5 h-5 text-primary" />
+                <span className="text-lg font-semibold">
+                  Real-Time Performance
+                </span>
               </div>
               {metrics && (
                 <>
+                  <Separator orientation="vertical" className="h-6" />
                   <Badge
                     variant={getPerformanceBadgeVariant(metrics.fps)}
-                    className="font-mono"
+                    className="px-3 py-1"
                   >
                     {metrics.fps.toFixed(1)} FPS
                   </Badge>
-                  <Badge variant="outline" className="font-mono">
-                    {metrics.avgFrameTime.toFixed(1)}ms
+                  <Badge variant="outline" className="px-3 py-1 font-mono">
+                    {metrics.avgFrameTime.toFixed(2)}ms
                   </Badge>
-                  <Separator orientation="vertical" className="h-6" />
-                  <div className="text-sm text-muted-foreground">
-                    <span className="font-medium">
-                      {params.subdivisions}×{params.subdivisions}
-                    </span>{" "}
-                    vertices (
-                    {(
-                      params.subdivisions * params.subdivisions
-                    ).toLocaleString()}{" "}
-                    total)
-                  </div>
+                  <Badge variant="secondary" className="px-3 py-1">
+                    {performanceGrade(metrics.fps)}
+                  </Badge>
                 </>
               )}
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowCode(!showCode)}
-              >
-                {showCode ? (
-                  <>
-                    <EyeOff className="w-4 h-4 mr-2" />
-                    Hide Code
-                  </>
-                ) : (
-                  <>
-                    <Eye className="w-4 h-4 mr-2" />
-                    Show Code
-                  </>
-                )}
-              </Button>
-              <Button variant="outline" size="sm" onClick={exportConfig}>
-                <Download className="w-4 h-4 mr-2" />
-                Config
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={exportMetrics}
-                disabled={!metrics}
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Metrics
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={copyConfigToClipboard}
-              >
-                {copiedConfig ? (
-                  <>
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4 mr-2" />
-                    Copy
-                  </>
-                )}
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCode(!showCode)}
+            >
+              {showCode ? (
+                <>
+                  <EyeOff className="w-4 h-4 mr-2" />
+                  Hide Code
+                </>
+              ) : (
+                <>
+                  <Eye className="w-4 h-4 mr-2" />
+                  Show Code
+                </>
+              )}
+            </Button>
           </div>
         </Card>
 
-        {/* 3D Canvas */}
-        <Card className="overflow-hidden">
-          <div
-            className="bg-black border-2 border-border/50"
-            style={{ aspectRatio: "16/10" }}
-          >
-            <DisplacementCanvas
-              params={params}
-              onPerformanceUpdate={handlePerformanceUpdate}
-            />
-          </div>
-          <div className="p-4 bg-muted/30">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Badge variant="secondary" className="text-xs">
-                {params.noiseType}
-              </Badge>
-              <span>•</span>
-              <span>Drag to rotate • Scroll to zoom • Right-click to pan</span>
-            </div>
-          </div>
+        {/* Canvas */}
+        <Card className="overflow-hidden aspect-video bg-gradient-to-br from-muted/30 to-muted/10">
+          <DisplacementCanvas
+            params={params}
+            onPerformanceUpdate={handlePerformanceUpdate}
+          />
         </Card>
 
-        {/* Advanced Performance Metrics */}
+        {/* Shader Code Viewer */}
+        {showCode && (
+          <Card className="overflow-hidden">
+            <div className="bg-muted/50 p-4 flex justify-between items-center border-b">
+              <div className="flex items-center gap-2">
+                <Code className="w-4 h-4" />
+                <span className="text-sm font-semibold">
+                  Vertex Shader - Displacement Code
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  // Map noise types to library keys
+                  const noiseLibraryKey = params.noiseType.replace(/F[12]$/, '').replace(/([A-Z])/g, (match) => match.toLowerCase());
+                  const baseNoiseType = params.noiseType.includes('voronoi') ? 'voronoi' :
+                                       params.noiseType.includes('cellular') ? 'cellular' :
+                                       noiseLibraryKey as keyof typeof NoiseLibrary;
+
+                  const shaderCode = `// Displacement Parameters
+// Noise Type: ${params.noiseType}
+// UV Scale: ${params.uvScale.toFixed(2)}
+// Amplitude: ${params.amplitude.toFixed(2)}
+// Frequency: ${params.frequency.toFixed(2)}
+// Octaves: ${params.octaves}
+// Gain: ${params.gain.toFixed(2)}
+// Lacunarity: ${params.lacunarity.toFixed(2)}
+// Ridge Offset: ${params.ridgeOffset.toFixed(2)}
+// Warp Strength: ${params.warpStrength.toFixed(2)}
+
+${NoiseLibrary.common}
+
+${NoiseLibrary[baseNoiseType] || '// Noise function implementation'}
+
+// Vertex Shader Implementation
+// Apply this displacement in your vertex shader:
+vec3 displacedPosition = position;
+float displacement = ${params.noiseType}Noise(position * ${params.frequency.toFixed(2)});
+displacement *= ${params.amplitude.toFixed(2)};
+displacedPosition += normal * displacement;
+
+gl_Position = projectionMatrix * modelViewMatrix * vec4(displacedPosition, 1.0);`;
+                  navigator.clipboard.writeText(shaderCode);
+                }}
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Copy
+              </Button>
+            </div>
+            <pre className="p-6 overflow-x-auto bg-muted/20 text-sm max-h-96">
+              <code className="font-mono text-emerald-500">
+                {(() => {
+                  // Map noise types to library keys
+                  const noiseLibraryKey = params.noiseType.replace(/F[12]$/, '').replace(/([A-Z])/g, (match) => match.toLowerCase());
+                  const baseNoiseType = params.noiseType.includes('voronoi') ? 'voronoi' :
+                                       params.noiseType.includes('cellular') ? 'cellular' :
+                                       noiseLibraryKey as keyof typeof NoiseLibrary;
+
+                  return `// Displacement Parameters
+// Noise Type: ${params.noiseType}
+// UV Scale: ${params.uvScale.toFixed(2)}
+// Amplitude: ${params.amplitude.toFixed(2)}
+// Frequency: ${params.frequency.toFixed(2)}
+// Octaves: ${params.octaves}
+// Gain: ${params.gain.toFixed(2)}
+// Lacunarity: ${params.lacunarity.toFixed(2)}
+// Ridge Offset: ${params.ridgeOffset.toFixed(2)}
+// Warp Strength: ${params.warpStrength.toFixed(2)}
+
+${NoiseLibrary.common}
+
+${NoiseLibrary[baseNoiseType] || '// Noise function implementation'}
+
+// Vertex Shader Implementation
+// Apply this displacement in your vertex shader:
+vec3 displacedPosition = position;
+float displacement = ${params.noiseType}Noise(position * ${params.frequency.toFixed(2)});
+displacement *= ${params.amplitude.toFixed(2)};
+displacedPosition += normal * displacement;
+
+gl_Position = projectionMatrix * modelViewMatrix * vec4(displacedPosition, 1.0);`;
+                })()}
+              </code>
+            </pre>
+          </Card>
+        )}
+
+        {/* Detailed Metrics */}
         {metrics && (
-          <Card className="p-6 bg-gradient-to-br from-card to-card/50">
+          <Card className="p-6">
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp className="w-5 h-5 text-primary" />
-              <h3 className="text-lg font-semibold">
-                Real-Time Performance Analysis
-              </h3>
+              <h3 className="text-lg font-semibold">Performance Metrics</h3>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {/* Main FPS Card */}
+            {/* Primary Metrics Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              {/* FPS */}
               <Card className="p-4 bg-muted/30">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    FPS
-                  </p>
-                  <Badge
-                    variant={getPerformanceBadgeVariant(metrics.fps)}
-                    className="text-xs"
-                  >
-                    {performanceGrade(metrics.fps)}
-                  </Badge>
-                </div>
+                <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
+                  Current FPS
+                </p>
                 <p className="text-3xl font-bold tabular-nums">
                   {metrics.fps.toFixed(1)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Target: 60 FPS
+                  {performanceGrade(metrics.fps)}
                 </p>
               </Card>
 
               {/* Frame Time */}
               <Card className="p-4 bg-muted/30">
-                <div className="flex items-center gap-2 mb-2">
-                  <Activity className="w-3 h-3 text-primary" />
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Frame Time
-                  </p>
-                </div>
-                <p className="text-2xl font-bold tabular-nums">
+                <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
+                  Frame Time
+                </p>
+                <p className="text-3xl font-bold tabular-nums">
                   {metrics.avgFrameTime.toFixed(1)}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">ms (avg)</p>
+                <p className="text-xs text-muted-foreground mt-1">ms average</p>
               </Card>
 
               {/* Triangle Count */}
@@ -399,7 +343,10 @@ Wireframe: ${params.wireframe}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">per frame</p>
               </Card>
+            </div>
 
+            {/* Secondary Metrics Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {/* Resolution */}
               <Card className="p-4 bg-muted/30">
                 <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
@@ -453,7 +400,7 @@ Wireframe: ${params.wireframe}
               </Card>
             </div>
 
-            {/* FPS History Graph (Simple Text-Based) */}
+            {/* FPS History Graph */}
             {metricsHistory.length > 10 && (
               <div className="mt-6 space-y-2">
                 <h4 className="text-sm font-semibold">
@@ -532,40 +479,6 @@ Wireframe: ${params.wireframe}
           </Card>
         )}
 
-        {/* Shader Code Export */}
-        {showCode && (
-          <Card className="overflow-hidden">
-            <div className="bg-muted/50 p-4 flex justify-between items-center border-b">
-              <div className="flex items-center gap-2">
-                <Code className="w-4 h-4" />
-                <span className="text-sm font-semibold">
-                  Shader Configuration Export
-                </span>
-              </div>
-              <Button variant="outline" size="sm" onClick={copyShaderCode}>
-                {copiedShader ? (
-                  <>
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4 mr-2" />
-                    Copy
-                  </>
-                )}
-              </Button>
-            </div>
-            <div className="p-4">
-              <Textarea
-                value={generateShaderCode()}
-                readOnly
-                className="font-mono text-sm h-64 resize-none"
-              />
-            </div>
-          </Card>
-        )}
-
         {/* Info Card */}
         <Card className="p-6 bg-muted/30">
           <h3 className="text-lg font-semibold mb-3">About Displacement Lab</h3>
@@ -589,6 +502,19 @@ Wireframe: ${params.wireframe}
                 <div>• Drop frame detection</div>
               </div>
             </div>
+            <div className="pt-2">
+              <p className="font-semibold text-foreground mb-2">
+                Export Features:
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>• Complete shader code</div>
+                <div>• Noise function source</div>
+                <div>• Implementation guide</div>
+                <div>• Performance metrics</div>
+                <div>• Code snippets</div>
+                <div>• JSON configuration</div>
+              </div>
+            </div>
           </div>
         </Card>
       </div>
@@ -600,6 +526,24 @@ Wireframe: ${params.wireframe}
           onParamsChange={handleParamsChange}
           onPresetLoad={handlePresetLoad}
         />
+
+        {/* Config Export/Import Section */}
+        <Card className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Zap className="w-5 h-5 text-primary" />
+            <h3 className="text-lg font-semibold">Configuration Management</h3>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Export complete displacement configuration with shader code,
+            implementation guide, and performance metrics. Import configurations
+            to quickly restore settings.
+          </p>
+          <DisplacementConfigManager
+            currentParams={params}
+            performanceMetrics={metrics || undefined}
+            onImport={handleImport}
+          />
+        </Card>
       </div>
     </div>
   );

@@ -5,7 +5,15 @@ import { PerformanceMetrics } from "./ShaderCanvas";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Monitor, TrendingUp } from "lucide-react";
-import { BarChart } from "@tremor/react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 interface ResolutionBenchmarkProps {
   currentMetrics: PerformanceMetrics | null;
@@ -29,30 +37,32 @@ export const ResolutionBenchmark: React.FC<ResolutionBenchmarkProps> = ({
   useEffect(() => {
     if (!currentMetrics) return;
 
-    const key = `${currentMetrics.resolution.width}x${currentMetrics.resolution.height}`;
-    const existingIndex = benchmarks.findIndex(
-      (b) => b.resolution === key
-    );
+    // Round to avoid floating point issues
+    const width = Math.round(currentMetrics.resolution.width);
+    const height = Math.round(currentMetrics.resolution.height);
+    const key = `${width}x${height}`;
 
-    const newEntry: BenchmarkEntry = {
-      resolution: key,
-      width: currentMetrics.resolution.width,
-      height: currentMetrics.resolution.height,
-      pixelCount: currentMetrics.pixelCount,
-      fps: currentMetrics.fps,
-      avgFrameTime: currentMetrics.avgFrameTime,
-      timestamp: Date.now(),
-    };
+    setBenchmarks((prev) => {
+      const existingIndex = prev.findIndex((b) => b.resolution === key);
 
-    if (existingIndex >= 0) {
-      // Update existing entry
-      setBenchmarks((prev) =>
-        prev.map((b, i) => (i === existingIndex ? newEntry : b))
-      );
-    } else {
-      // Add new entry
-      setBenchmarks((prev) => [...prev, newEntry]);
-    }
+      const newEntry: BenchmarkEntry = {
+        resolution: key,
+        width,
+        height,
+        pixelCount: width * height,
+        fps: currentMetrics.fps,
+        avgFrameTime: currentMetrics.avgFrameTime,
+        timestamp: Date.now(),
+      };
+
+      if (existingIndex >= 0) {
+        // Update existing entry
+        return prev.map((b, i) => (i === existingIndex ? newEntry : b));
+      } else {
+        // Add new entry
+        return [...prev, newEntry];
+      }
+    });
   }, [currentMetrics?.resolution.width, currentMetrics?.resolution.height]);
 
   const calculateEfficiency = (entry: BenchmarkEntry) => {
@@ -68,7 +78,7 @@ export const ResolutionBenchmark: React.FC<ResolutionBenchmarkProps> = ({
   const chartData = sortedBenchmarks.map((entry) => ({
     resolution: entry.resolution,
     FPS: Number(entry.fps.toFixed(1)),
-    "Frame Time": Number(entry.avgFrameTime.toFixed(1)),
+    frameTime: Number(entry.avgFrameTime.toFixed(1)),
   }));
 
   return (
@@ -79,16 +89,29 @@ export const ResolutionBenchmark: React.FC<ResolutionBenchmarkProps> = ({
           <TrendingUp className="w-5 h-5 text-primary" />
           <h3 className="text-lg font-semibold">FPS by Resolution</h3>
         </div>
-        <BarChart
-          className="h-48"
-          data={chartData}
-          index="resolution"
-          categories={["FPS"]}
-          colors={["emerald"]}
-          showLegend={false}
-          showGridLines={true}
-          yAxisWidth={48}
-        />
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <XAxis
+              dataKey="resolution"
+              className="text-xs"
+              tick={{ fill: 'currentColor' }}
+            />
+            <YAxis
+              className="text-xs"
+              tick={{ fill: 'currentColor' }}
+              label={{ value: 'FPS', angle: -90, position: 'insideLeft' }}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: 'hsl(var(--background))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: '6px'
+              }}
+            />
+            <Bar dataKey="FPS" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
       </Card>
 
       {/* Detailed Table */}
