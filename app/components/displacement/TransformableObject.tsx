@@ -280,14 +280,6 @@ export const TransformableObject: React.FC<TransformableObjectProps> = ({
           side={THREE.DoubleSide}
         />
       </mesh>
-
-      {/* Selection indicator */}
-      {isSelected && (
-        <lineSegments>
-          <edgesGeometry args={[geometry]} />
-          <lineBasicMaterial color="#3b82f6" linewidth={2} />
-        </lineSegments>
-      )}
     </group>
   );
 };

@@ -18,19 +18,19 @@ export const TransformToolbar: React.FC<TransformToolbarProps> = ({
   disabled = false,
 }) => {
   return (
-    <div className="inline-flex items-center gap-1 p-1 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg">
+    <div className="inline-flex items-center gap-0.5 p-0.5 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg">
       <Button
         size="sm"
         variant={mode === "translate" ? "default" : "ghost"}
         onClick={() => onModeChange("translate")}
         disabled={disabled}
-        className={`h-8 px-3 ${
+        className={`h-7 px-2.5 text-[11px] ${
           mode === "translate"
-            ? "bg-blue-600 hover:bg-blue-700"
-            : "hover:bg-white/10"
+            ? "bg-blue-600 hover:bg-blue-700 text-white"
+            : "hover:bg-white/10 text-gray-300"
         }`}
       >
-        <Move className="w-4 h-4 mr-1.5" />
+        <Move className="w-3.5 h-3.5 mr-1" />
         Move
       </Button>
       <Button
@@ -38,13 +38,13 @@ export const TransformToolbar: React.FC<TransformToolbarProps> = ({
         variant={mode === "rotate" ? "default" : "ghost"}
         onClick={() => onModeChange("rotate")}
         disabled={disabled}
-        className={`h-8 px-3 ${
+        className={`h-7 px-2.5 text-[11px] ${
           mode === "rotate"
-            ? "bg-blue-600 hover:bg-blue-700"
-            : "hover:bg-white/10"
+            ? "bg-blue-600 hover:bg-blue-700 text-white"
+            : "hover:bg-white/10 text-gray-300"
         }`}
       >
-        <RotateCw className="w-4 h-4 mr-1.5" />
+        <RotateCw className="w-3.5 h-3.5 mr-1" />
         Rotate
       </Button>
       <Button
@@ -52,13 +52,13 @@ export const TransformToolbar: React.FC<TransformToolbarProps> = ({
         variant={mode === "scale" ? "default" : "ghost"}
         onClick={() => onModeChange("scale")}
         disabled={disabled}
-        className={`h-8 px-3 ${
+        className={`h-7 px-2.5 text-[11px] ${
           mode === "scale"
-            ? "bg-blue-600 hover:bg-blue-700"
-            : "hover:bg-white/10"
+            ? "bg-blue-600 hover:bg-blue-700 text-white"
+            : "hover:bg-white/10 text-gray-300"
         }`}
       >
-        <Maximize2 className="w-4 h-4 mr-1.5" />
+        <Maximize2 className="w-3.5 h-3.5 mr-1" />
         Scale
       </Button>
     </div>

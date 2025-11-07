@@ -110,15 +110,15 @@ export const DisplacementViewer: React.FC = () => {
 
       {/* Top Toolbar Overlay */}
       <div className="absolute top-0 left-0 right-0 z-50 pointer-events-none">
-        <div className="flex items-center justify-between p-4 pointer-events-auto">
+        <div className="flex items-center justify-between p-2 pointer-events-auto">
           {/* Left: Branding */}
-          <Card className="inline-flex items-center gap-2 px-3 py-2 bg-black/60 backdrop-blur-md border-white/10">
-            <div className="p-1.5 rounded-lg bg-blue-500/20">
-              <Waves className="h-5 w-5 text-blue-400" />
+          <Card className="inline-flex items-center gap-2 px-2 py-1.5 bg-black/60 backdrop-blur-md border-white/10">
+            <div className="p-1 rounded bg-blue-500/20">
+              <Waves className="h-4 w-4 text-blue-400" />
             </div>
             <div>
-              <h1 className="text-sm font-bold text-white">Displacement Lab</h1>
-              <p className="text-xs text-gray-400">Procedural Testing</p>
+              <h1 className="text-xs font-bold text-white">Displacement Lab</h1>
+              <p className="text-[9px] text-gray-400">Procedural Testing</p>
             </div>
           </Card>
 
@@ -132,17 +132,17 @@ export const DisplacementViewer: React.FC = () => {
           )}
 
           {/* Right: Navigation & Info */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {performance && (
-              <Card className="inline-flex items-center gap-3 px-3 py-2 bg-black/60 backdrop-blur-md border-white/10">
+              <Card className="inline-flex items-center gap-2 px-2 py-1.5 bg-black/60 backdrop-blur-md border-white/10">
                 <div className="flex items-center gap-2">
                   <Badge
                     variant={performance.fps >= 55 ? "default" : "destructive"}
-                    className="text-xs font-mono"
+                    className="h-5 text-[10px] font-mono"
                   >
                     {performance.fps} FPS
                   </Badge>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-[10px] text-gray-400">
                     {performance.triangleCount.toLocaleString()} tris
                   </span>
                 </div>
@@ -153,9 +153,9 @@ export const DisplacementViewer: React.FC = () => {
               <Button
                 size="sm"
                 variant="ghost"
-                className="bg-black/60 backdrop-blur-md border border-white/10 hover:bg-white/10"
+                className="h-7 px-2 text-[10px] bg-black/60 backdrop-blur-md border border-white/10 hover:bg-white/10 text-white"
               >
-                <Zap className="w-4 h-4 mr-2" />
+                <Zap className="w-3 h-3 mr-1" />
                 Gallery
               </Button>
             </Link>
@@ -164,9 +164,9 @@ export const DisplacementViewer: React.FC = () => {
               <Button
                 size="sm"
                 variant="ghost"
-                className="bg-black/60 backdrop-blur-md border border-white/10 hover:bg-white/10"
+                className="h-7 px-2 text-[10px] bg-black/60 backdrop-blur-md border border-white/10 hover:bg-white/10 text-white"
               >
-                <Home className="w-4 h-4 mr-2" />
+                <Home className="w-3 h-3 mr-1" />
                 Home
               </Button>
             </Link>
@@ -182,23 +182,23 @@ export const DisplacementViewer: React.FC = () => {
             size="icon"
             variant="ghost"
             onClick={() => setLeftPanelOpen(!leftPanelOpen)}
-            className="pointer-events-auto ml-2 bg-black/60 backdrop-blur-md border border-white/10 hover:bg-white/10"
+            className="pointer-events-auto ml-1 h-7 w-7 bg-black/60 backdrop-blur-md border border-white/10 hover:bg-white/10"
           >
             {leftPanelOpen ? (
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3 h-3" />
             ) : (
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3 h-3" />
             )}
           </Button>
 
           {/* Panel */}
           <div
             className={`
-              h-[calc(100vh-6rem)] mt-20 ml-2 pointer-events-auto
+              h-[calc(100vh-4rem)] mt-14 ml-1 pointer-events-auto
               transition-all duration-300 ease-in-out
               ${leftPanelOpen ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-full"}
             `}
-            style={{ width: leftPanelOpen ? "280px" : "0px" }}
+            style={{ width: leftPanelOpen ? "240px" : "0px" }}
           >
             {leftPanelOpen && (
               <div className="h-full bg-black/60 backdrop-blur-md border border-white/10 rounded-lg overflow-hidden">
@@ -223,11 +223,11 @@ export const DisplacementViewer: React.FC = () => {
           {/* Panel */}
           <div
             className={`
-              h-[calc(100vh-6rem)] mt-20 mr-2 pointer-events-auto
+              h-[calc(100vh-4rem)] mt-14 mr-1 pointer-events-auto
               transition-all duration-300 ease-in-out
               ${rightPanelOpen ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full"}
             `}
-            style={{ width: rightPanelOpen ? "320px" : "0px" }}
+            style={{ width: rightPanelOpen ? "280px" : "0px" }}
           >
             {rightPanelOpen && selectedObject && (
               <div className="h-full bg-black/60 backdrop-blur-md border border-white/10 rounded-lg overflow-hidden">
@@ -244,13 +244,13 @@ export const DisplacementViewer: React.FC = () => {
             size="icon"
             variant="ghost"
             onClick={() => setRightPanelOpen(!rightPanelOpen)}
-            className="pointer-events-auto mr-2 bg-black/60 backdrop-blur-md border border-white/10 hover:bg-white/10"
+            className="pointer-events-auto mr-1 h-7 w-7 bg-black/60 backdrop-blur-md border border-white/10 hover:bg-white/10"
             disabled={!selectedObject}
           >
             {rightPanelOpen ? (
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3 h-3" />
             ) : (
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3 h-3" />
             )}
           </Button>
         </div>
@@ -258,27 +258,27 @@ export const DisplacementViewer: React.FC = () => {
 
       {/* Bottom Info Bar */}
       <div className="absolute bottom-0 left-0 right-0 z-50 pointer-events-none">
-        <div className="flex items-center justify-between p-4 pointer-events-auto">
-          <Card className="inline-flex items-center gap-2 px-3 py-1.5 bg-black/60 backdrop-blur-md border-white/10">
-            <Info className="w-3.5 h-3.5 text-gray-400" />
-            <span className="text-xs text-gray-400">
+        <div className="flex items-center justify-between p-2 pointer-events-auto">
+          <Card className="inline-flex items-center gap-1.5 px-2 py-1 bg-black/60 backdrop-blur-md border-white/10">
+            <Info className="w-3 h-3 text-gray-400" />
+            <span className="text-[10px] text-gray-400">
               {selectedObject
-                ? `Selected: ${selectedObject.name}` 
+                ? `Selected: ${selectedObject.name}`
                 : "Click object to select • Drag to orbit • Scroll to zoom"}
             </span>
           </Card>
 
           {performance && (
-            <Card className="inline-flex items-center gap-3 px-3 py-1.5 bg-black/60 backdrop-blur-md border-white/10">
-              <span className="text-xs text-gray-400 font-mono">
+            <Card className="inline-flex items-center gap-2 px-2 py-1 bg-black/60 backdrop-blur-md border-white/10">
+              <span className="text-[10px] text-gray-400 font-mono">
                 {performance.resolution.width}×{performance.resolution.height}
               </span>
-              <span className="text-xs text-gray-400">•</span>
-              <span className="text-xs text-gray-400">
+              <span className="text-[10px] text-gray-400">•</span>
+              <span className="text-[10px] text-gray-400">
                 {performance.drawCalls} calls
               </span>
-              <span className="text-xs text-gray-400">•</span>
-              <span className="text-xs text-gray-400">
+              <span className="text-[10px] text-gray-400">•</span>
+              <span className="text-[10px] text-gray-400">
                 {(performance.geometryMemory / 1024 / 1024).toFixed(1)}MB
               </span>
             </Card>

@@ -3,11 +3,11 @@
 import React from "react";
 import { DisplacementParams } from "./Displacementcanvas";
 import { NoiseType, NoiseConfigs } from "../../utils/Noiselibrary";
-import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -45,395 +45,373 @@ export const NoiseControls: React.FC<NoiseControlsProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Noise Type Selection */}
-      <Card className="p-6">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold">Noise Function</h3>
-              <p className="text-sm text-muted-foreground">
-                {currentNoiseConfig.description}
-              </p>
-            </div>
-          </div>
+    <div className="w-full h-full flex flex-col">
+      {/* Header */}
+      <div className="p-3 border-b border-white/10">
+        <h3 className="font-semibold text-sm text-white">Displacement Controls</h3>
+      </div>
 
-          <Select
-            value={params.noiseType}
-            onValueChange={(value: NoiseType) =>
-              onParamsChange({ noiseType: value })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.values(NoiseConfigs).map((config) => (
-                <SelectItem key={config.type} value={config.type}>
-                  <div className="flex flex-col">
-                    <span className="font-medium">{config.label}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {config.description}
-                    </span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </Card>
-
-      {/* Core Parameters */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Core Parameters</h3>
-        <div className="space-y-6">
-          {/* Amplitude */}
+      {/* Scrollable Content */}
+      <ScrollArea className="flex-1">
+        <div className="p-3 space-y-3">
+          {/* Noise Type Selection */}
           <div className="space-y-2">
-            <div className="flex justify-between">
-              <Label>Displacement Amplitude</Label>
-              <Badge variant="outline" className="font-mono">
-                {params.amplitude.toFixed(2)}
-              </Badge>
-            </div>
-            <Slider
-              value={[params.amplitude]}
-              onValueChange={(v) => handleSliderChange("amplitude", v)}
-              min={0}
-              max={1}
-              step={0.01}
-            />
-            <p className="text-xs text-muted-foreground">
-              Strength of the displacement effect
-            </p>
-          </div>
-
-          {/* Frequency */}
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <Label>Frequency</Label>
-              <Badge variant="outline" className="font-mono">
-                {params.frequency.toFixed(2)}
-              </Badge>
-            </div>
-            <Slider
-              value={[params.frequency]}
-              onValueChange={(v) => handleSliderChange("frequency", v)}
-              min={0.1}
-              max={10}
-              step={0.1}
-            />
-            <p className="text-xs text-muted-foreground">
-              Detail level - higher creates smaller features
-            </p>
-          </div>
-
-          {/* UV Scale */}
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <Label>UV Scale</Label>
-              <Badge variant="outline" className="font-mono">
-                {params.uvScale.toFixed(2)}
-              </Badge>
-            </div>
-            <Slider
-              value={[params.uvScale]}
-              onValueChange={(v) => handleSliderChange("uvScale", v)}
-              min={0.1}
-              max={5}
-              step={0.1}
-            />
-            <p className="text-xs text-muted-foreground">
-              Global texture coordinate scaling
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Fractal Parameters (conditional) */}
-      {currentNoiseConfig.requiresOctaves && (
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Fractal Parameters</h3>
-          <div className="space-y-6">
-            {/* Octaves */}
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <Label>Octaves</Label>
-                <Badge variant="outline" className="font-mono">
-                  {params.octaves}
-                </Badge>
-              </div>
-              <Slider
-                value={[params.octaves]}
-                onValueChange={(v) => handleSliderChange("octaves", v)}
-                min={1}
-                max={8}
-                step={1}
-              />
-              <p className="text-xs text-muted-foreground">
-                Number of noise layers to combine
-              </p>
-            </div>
-
-            {/* Lacunarity */}
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <Label>Lacunarity</Label>
-                <Badge variant="outline" className="font-mono">
-                  {params.lacunarity.toFixed(2)}
-                </Badge>
-              </div>
-              <Slider
-                value={[params.lacunarity]}
-                onValueChange={(v) => handleSliderChange("lacunarity", v)}
-                min={1}
-                max={4}
-                step={0.1}
-              />
-              <p className="text-xs text-muted-foreground">
-                Frequency multiplier between octaves
-              </p>
-            </div>
-
-            {/* Gain/Persistence */}
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <Label>Gain (Persistence)</Label>
-                <Badge variant="outline" className="font-mono">
-                  {params.gain.toFixed(2)}
-                </Badge>
-              </div>
-              <Slider
-                value={[params.gain]}
-                onValueChange={(v) => handleSliderChange("gain", v)}
-                min={0}
-                max={1}
-                step={0.01}
-              />
-              <p className="text-xs text-muted-foreground">
-                Amplitude multiplier between octaves
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Ridge Offset (conditional) */}
-      {currentNoiseConfig.requiresRidgeOffset && (
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Ridge Parameters</h3>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <Label>Ridge Offset</Label>
-              <Badge variant="outline" className="font-mono">
-                {params.ridgeOffset.toFixed(2)}
-              </Badge>
-            </div>
-            <Slider
-              value={[params.ridgeOffset]}
-              onValueChange={(v) => handleSliderChange("ridgeOffset", v)}
-              min={0}
-              max={2}
-              step={0.01}
-            />
-            <p className="text-xs text-muted-foreground">
-              Controls ridge sharpness and inversion
-            </p>
-          </div>
-        </Card>
-      )}
-
-      {/* Warp Strength (conditional) */}
-      {currentNoiseConfig.requiresWarpStrength && (
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Domain Warp</h3>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <Label>Warp Strength</Label>
-              <Badge variant="outline" className="font-mono">
-                {params.warpStrength.toFixed(2)}
-              </Badge>
-            </div>
-            <Slider
-              value={[params.warpStrength]}
-              onValueChange={(v) => handleSliderChange("warpStrength", v)}
-              min={0}
-              max={5}
-              step={0.1}
-            />
-            <p className="text-xs text-muted-foreground">
-              Strength of domain distortion
-            </p>
-          </div>
-        </Card>
-      )}
-
-      {/* Animation */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Animation</h3>
-        <div className="space-y-2">
-          <div className="flex justify-between">
-            <Label>Animation Speed</Label>
-            <Badge variant="outline" className="font-mono">
-              {params.animationSpeed.toFixed(2)}
-            </Badge>
-          </div>
-          <Slider
-            value={[params.animationSpeed]}
-            onValueChange={(v) => handleSliderChange("animationSpeed", v)}
-            min={0}
-            max={2}
-            step={0.01}
-          />
-          <p className="text-xs text-muted-foreground">
-            Speed of noise evolution (0 = frozen)
-          </p>
-        </div>
-      </Card>
-
-      {/* Visualization */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Visualization</h3>
-        <div className="space-y-4">
-          {/* Visualization Mode */}
-          <div className="space-y-2">
-            <Label>Coloring Mode</Label>
+            <Label className="text-xs text-gray-300">Noise Function</Label>
             <Select
-              value={params.visualizationMode}
-              onValueChange={(
-                value: "solid" | "height" | "normal" | "wireframe"
-              ) => onParamsChange({ visualizationMode: value })}
+              value={params.noiseType}
+              onValueChange={(value: NoiseType) =>
+                onParamsChange({ noiseType: value })
+              }
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-8 text-xs bg-white/5 border-white/10 text-white">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="solid">
-                  <span>Solid Color (Lit)</span>
-                </SelectItem>
-                <SelectItem value="height">
-                  <span>Height-based Gradient</span>
-                </SelectItem>
-                <SelectItem value="normal">
-                  <span>Normal Map</span>
-                </SelectItem>
-                <SelectItem value="wireframe">
-                  <span>Wireframe</span>
-                </SelectItem>
+              <SelectContent className="bg-black/95 backdrop-blur-md border-white/20">
+                {Object.values(NoiseConfigs).map((config) => (
+                  <SelectItem
+                    key={config.type}
+                    value={config.type}
+                    className="text-white hover:bg-white/10 text-xs"
+                  >
+                    {config.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            <p className="text-[10px] text-gray-400">{currentNoiseConfig.description}</p>
           </div>
 
-          {/* Roughness Slider (visible only in solid mode) */}
-          {params.visualizationMode === "solid" && (
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <Label>Surface Roughness</Label>
-                <Badge variant="outline" className="font-mono">
-                  {params.roughness.toFixed(2)}
+          {/* Core Parameters */}
+          <div className="pt-2 space-y-3">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Core Parameters</p>
+
+            {/* Amplitude */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center">
+                <Label className="text-xs text-gray-300">Amplitude</Label>
+                <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
+                  {params.amplitude.toFixed(2)}
                 </Badge>
               </div>
               <Slider
-                value={[params.roughness]}
-                onValueChange={(v) => handleSliderChange("roughness", v)}
+                value={[params.amplitude]}
+                onValueChange={(v) => handleSliderChange("amplitude", v)}
                 min={0}
                 max={1}
                 step={0.01}
                 className="w-full"
               />
-              <p className="text-xs text-muted-foreground">
-                0 = smooth/glossy, 1 = rough/matte
-              </p>
+            </div>
+
+            {/* Frequency */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center">
+                <Label className="text-xs text-gray-300">Frequency</Label>
+                <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
+                  {params.frequency.toFixed(2)}
+                </Badge>
+              </div>
+              <Slider
+                value={[params.frequency]}
+                onValueChange={(v) => handleSliderChange("frequency", v)}
+                min={0.1}
+                max={10}
+                step={0.1}
+              />
+            </div>
+
+            {/* UV Scale */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center">
+                <Label className="text-xs text-gray-300">UV Scale</Label>
+                <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
+                  {params.uvScale.toFixed(2)}
+                </Badge>
+              </div>
+              <Slider
+                value={[params.uvScale]}
+                onValueChange={(v) => handleSliderChange("uvScale", v)}
+                min={0.1}
+                max={5}
+                step={0.1}
+              />
+            </div>
+          </div>
+
+          {/* Fractal Parameters (conditional) */}
+          {currentNoiseConfig.requiresOctaves && (
+            <div className="pt-2 space-y-3 border-t border-white/10">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Fractal</p>
+
+              {/* Octaves */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <Label className="text-xs text-gray-300">Octaves</Label>
+                  <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
+                    {params.octaves}
+                  </Badge>
+                </div>
+                <Slider
+                  value={[params.octaves]}
+                  onValueChange={(v) => handleSliderChange("octaves", v)}
+                  min={1}
+                  max={8}
+                  step={1}
+                />
+              </div>
+
+              {/* Lacunarity */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <Label className="text-xs text-gray-300">Lacunarity</Label>
+                  <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
+                    {params.lacunarity.toFixed(2)}
+                  </Badge>
+                </div>
+                <Slider
+                  value={[params.lacunarity]}
+                  onValueChange={(v) => handleSliderChange("lacunarity", v)}
+                  min={1}
+                  max={4}
+                  step={0.1}
+                />
+              </div>
+
+              {/* Gain */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <Label className="text-xs text-gray-300">Gain</Label>
+                  <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
+                    {params.gain.toFixed(2)}
+                  </Badge>
+                </div>
+                <Slider
+                  value={[params.gain]}
+                  onValueChange={(v) => handleSliderChange("gain", v)}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                />
+              </div>
             </div>
           )}
 
-          {/* Wireframe Toggle */}
-          <div className="flex items-center justify-between">
-            <Label>Wireframe Overlay</Label>
-            <Button
-              variant={params.wireframe ? "default" : "outline"}
-              size="sm"
-              onClick={() => onParamsChange({ wireframe: !params.wireframe })}
-            >
-              {params.wireframe ? "ON" : "OFF"}
-            </Button>
-          </div>
+          {/* Ridge Offset (conditional) */}
+          {currentNoiseConfig.requiresRidgeOffset && (
+            <div className="pt-2 space-y-3 border-t border-white/10">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Ridge</p>
 
-          {/* Subdivisions */}
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <Label>Mesh Subdivisions</Label>
-              <Badge variant="outline" className="font-mono">
-                {params.subdivisions}
-              </Badge>
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <Label className="text-xs text-gray-300">Offset</Label>
+                  <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
+                    {params.ridgeOffset.toFixed(2)}
+                  </Badge>
+                </div>
+                <Slider
+                  value={[params.ridgeOffset]}
+                  onValueChange={(v) => handleSliderChange("ridgeOffset", v)}
+                  min={0}
+                  max={2}
+                  step={0.01}
+                />
+              </div>
             </div>
-            <Slider
-              value={[params.subdivisions]}
-              onValueChange={(v) => handleSliderChange("subdivisions", v)}
-              min={16}
-              max={256}
-              step={16}
-            />
-            <p className="text-xs text-muted-foreground">
-              Geometry density (higher = smoother but slower)
-            </p>
+          )}
+
+          {/* Warp Strength (conditional) */}
+          {currentNoiseConfig.requiresWarpStrength && (
+            <div className="pt-2 space-y-3 border-t border-white/10">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Domain Warp</p>
+
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <Label className="text-xs text-gray-300">Strength</Label>
+                  <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
+                    {params.warpStrength.toFixed(2)}
+                  </Badge>
+                </div>
+                <Slider
+                  value={[params.warpStrength]}
+                  onValueChange={(v) => handleSliderChange("warpStrength", v)}
+                  min={0}
+                  max={5}
+                  step={0.1}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Animation */}
+          <div className="pt-2 space-y-3 border-t border-white/10">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Animation</p>
+
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center">
+                <Label className="text-xs text-gray-300">Speed</Label>
+                <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
+                  {params.animationSpeed.toFixed(2)}
+                </Badge>
+              </div>
+              <Slider
+                value={[params.animationSpeed]}
+                onValueChange={(v) => handleSliderChange("animationSpeed", v)}
+                min={0}
+                max={2}
+                step={0.01}
+              />
+            </div>
+          </div>
+
+          {/* Visualization */}
+          <div className="pt-2 space-y-3 border-t border-white/10">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Visualization</p>
+
+            {/* Visualization Mode */}
+            <div className="space-y-2">
+              <Label className="text-xs text-gray-300">Coloring Mode</Label>
+              <Select
+                value={params.visualizationMode}
+                onValueChange={(
+                  value: "solid" | "height" | "normal" | "wireframe"
+                ) => onParamsChange({ visualizationMode: value })}
+              >
+                <SelectTrigger className="h-8 text-xs bg-white/5 border-white/10 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-black/95 backdrop-blur-md border-white/20">
+                  <SelectItem value="solid" className="text-white hover:bg-white/10 text-xs">
+                    Solid Color (Lit)
+                  </SelectItem>
+                  <SelectItem value="height" className="text-white hover:bg-white/10 text-xs">
+                    Height-based Gradient
+                  </SelectItem>
+                  <SelectItem value="normal" className="text-white hover:bg-white/10 text-xs">
+                    Normal Map
+                  </SelectItem>
+                  <SelectItem value="wireframe" className="text-white hover:bg-white/10 text-xs">
+                    Wireframe
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Roughness Slider (visible only in solid mode) */}
+            {params.visualizationMode === "solid" && (
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <Label className="text-xs text-gray-300">Roughness</Label>
+                  <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
+                    {params.roughness.toFixed(2)}
+                  </Badge>
+                </div>
+                <Slider
+                  value={[params.roughness]}
+                  onValueChange={(v) => handleSliderChange("roughness", v)}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                />
+              </div>
+            )}
+
+            {/* Wireframe Toggle */}
+            <div className="flex items-center justify-between">
+              <Label className="text-xs text-gray-300">Wireframe Overlay</Label>
+              <Button
+                variant={params.wireframe ? "default" : "outline"}
+                size="sm"
+                onClick={() => onParamsChange({ wireframe: !params.wireframe })}
+                className={`h-6 px-2 text-[10px] ${
+                  params.wireframe
+                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                    : "bg-white/5 hover:bg-white/10 text-white border-white/10"
+                }`}
+              >
+                {params.wireframe ? "ON" : "OFF"}
+              </Button>
+            </div>
+
+            {/* Subdivisions */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center">
+                <Label className="text-xs text-gray-300">Subdivisions</Label>
+                <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
+                  {params.subdivisions}
+                </Badge>
+              </div>
+              <Slider
+                value={[params.subdivisions]}
+                onValueChange={(v) => handleSliderChange("subdivisions", v)}
+                min={16}
+                max={256}
+                step={16}
+              />
+            </div>
+          </div>
+
+          {/* Presets */}
+          <div className="pt-2 space-y-2 border-t border-white/10 pb-3">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Presets</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPresetLoad(PRESETS.mountains)}
+                className="h-7 justify-start text-[10px] bg-white/5 hover:bg-white/10 text-white border-white/10"
+              >
+                <Mountain className="w-3 h-3 mr-1.5" />
+                Mountains
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPresetLoad(PRESETS.ocean)}
+                className="h-7 justify-start text-[10px] bg-white/5 hover:bg-white/10 text-white border-white/10"
+              >
+                <Waves className="w-3 h-3 mr-1.5" />
+                Ocean
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPresetLoad(PRESETS.organic)}
+                className="h-7 justify-start text-[10px] bg-white/5 hover:bg-white/10 text-white border-white/10"
+              >
+                <Sparkles className="w-3 h-3 mr-1.5" />
+                Organic
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPresetLoad(PRESETS.cellular)}
+                className="h-7 justify-start text-[10px] bg-white/5 hover:bg-white/10 text-white border-white/10"
+              >
+                <Grid3x3 className="w-3 h-3 mr-1.5" />
+                Cellular
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPresetLoad(PRESETS.turbulent)}
+                className="h-7 justify-start text-[10px] bg-white/5 hover:bg-white/10 text-white border-white/10"
+              >
+                <Zap className="w-3 h-3 mr-1.5" />
+                Turbulent
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPresetLoad(PRESETS.default)}
+                className="h-7 justify-start text-[10px] bg-white/5 hover:bg-white/10 text-white border-white/10"
+              >
+                <RotateCcw className="w-3 h-3 mr-1.5" />
+                Reset
+              </Button>
+            </div>
           </div>
         </div>
-      </Card>
-
-      {/* Presets */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Presets</h3>
-        <div className="grid grid-cols-2 gap-3">
-          <Button
-            variant="outline"
-            onClick={() => onPresetLoad(PRESETS.mountains)}
-            className="justify-start"
-          >
-            <Mountain className="w-4 h-4 mr-2" />
-            Mountains
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => onPresetLoad(PRESETS.ocean)}
-            className="justify-start"
-          >
-            <Waves className="w-4 h-4 mr-2" />
-            Ocean
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => onPresetLoad(PRESETS.organic)}
-            className="justify-start"
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            Organic
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => onPresetLoad(PRESETS.cellular)}
-            className="justify-start"
-          >
-            <Grid3x3 className="w-4 h-4 mr-2" />
-            Cellular
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => onPresetLoad(PRESETS.turbulent)}
-            className="justify-start"
-          >
-            <Zap className="w-4 h-4 mr-2" />
-            Turbulent
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => onPresetLoad(PRESETS.default)}
-            className="justify-start"
-          >
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Reset
-          </Button>
-        </div>
-      </Card>
+      </ScrollArea>
     </div>
   );
 };

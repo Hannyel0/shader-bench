@@ -69,11 +69,11 @@ export const ObjectListPanel: React.FC<ObjectListPanelProps> = ({
   return (
     <div className="w-full h-full flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b border-white/10">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-sm text-white">Scene Objects</h3>
-          <Badge variant="secondary" className="text-xs bg-white/10 text-white border-0">
-            {objects.length} {objects.length === 1 ? "object" : "objects"}
+      <div className="p-3 border-b border-white/10">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-semibold text-sm text-white">Objects</h3>
+          <Badge variant="secondary" className="h-5 text-[10px] bg-white/10 text-white border-0">
+            {objects.length}
           </Badge>
         </div>
 
@@ -81,49 +81,49 @@ export const ObjectListPanel: React.FC<ObjectListPanelProps> = ({
           <DropdownMenuTrigger asChild>
             <Button
               size="sm"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              className="w-full h-7 text-[10px] bg-blue-600 hover:bg-blue-700 text-white"
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-3 h-3 mr-1.5" />
               Add Object
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="start"
-            className="w-48 bg-black/95 backdrop-blur-md border-white/20"
+            className="w-44 bg-black/95 backdrop-blur-md border-white/20"
           >
             <DropdownMenuItem
               onClick={() => handleAddObject("sphere")}
-              className="text-white hover:bg-white/10"
+              className="text-white hover:bg-white/10 text-xs"
             >
-              <Circle className="w-4 h-4 mr-2" />
+              <Circle className="w-3 h-3 mr-2" />
               Sphere
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => handleAddObject("box")}
-              className="text-white hover:bg-white/10"
+              className="text-white hover:bg-white/10 text-xs"
             >
-              <Box className="w-4 h-4 mr-2" />
+              <Box className="w-3 h-3 mr-2" />
               Box
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => handleAddObject("plane")}
-              className="text-white hover:bg-white/10"
+              className="text-white hover:bg-white/10 text-xs"
             >
-              <Square className="w-4 h-4 mr-2" />
+              <Square className="w-3 h-3 mr-2" />
               Plane
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => handleAddObject("cylinder")}
-              className="text-white hover:bg-white/10"
+              className="text-white hover:bg-white/10 text-xs"
             >
-              <CylinderIcon className="w-4 h-4 mr-2" />
+              <CylinderIcon className="w-3 h-3 mr-2" />
               Cylinder
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => handleAddObject("torus")}
-              className="text-white hover:bg-white/10"
+              className="text-white hover:bg-white/10 text-xs"
             >
-              <Circle className="w-4 h-4 mr-2" />
+              <Circle className="w-3 h-3 mr-2" />
               Torus
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -134,17 +134,17 @@ export const ObjectListPanel: React.FC<ObjectListPanelProps> = ({
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
           {objects.length === 0 ? (
-            <div className="text-center py-8 text-gray-400 text-sm">
+            <div className="text-center py-6 text-gray-400 text-xs">
               No objects in scene
               <br />
-              <span className="text-xs">Click &quot;Add Object&quot; to start</span>
+              <span className="text-[10px]">Click &quot;Add Object&quot; to start</span>
             </div>
           ) : (
             objects.map((obj) => (
               <div
                 key={obj.id}
                 className={`
-                  group relative rounded-md border transition-all cursor-pointer
+                  group relative rounded border transition-all cursor-pointer
                   ${
                     selectedId === obj.id
                       ? "bg-blue-500/20 border-blue-500/40"
@@ -153,10 +153,10 @@ export const ObjectListPanel: React.FC<ObjectListPanelProps> = ({
                 `}
                 onClick={() => onSelect(obj.id)}
               >
-                <div className="flex items-center gap-2 p-2">
+                <div className="flex items-center gap-1.5 p-1.5">
                   <div
                     className={`
-                    p-1.5 rounded
+                    p-1 rounded
                     ${selectedId === obj.id ? "bg-blue-500/30" : "bg-white/10"}
                   `}
                   >
@@ -164,57 +164,57 @@ export const ObjectListPanel: React.FC<ObjectListPanelProps> = ({
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-medium truncate text-white">
+                    <div className="text-[10px] font-medium truncate text-white">
                       {obj.name}
                     </div>
-                    <div className="text-xs text-gray-400">
-                      {obj.displacement.noiseType} • {obj.displacement.subdivisions}
+                    <div className="text-[9px] text-gray-400 truncate">
+                      {obj.displacement.noiseType}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="h-7 w-7 hover:bg-white/10"
+                      className="h-6 w-6 hover:bg-white/10"
                       onClick={(e) => {
                         e.stopPropagation();
                         onToggleVisibility(obj.id);
                       }}
                     >
                       {obj.visible ? (
-                        <Eye className="w-3.5 h-3.5 text-gray-300" />
+                        <Eye className="w-3 h-3 text-gray-300" />
                       ) : (
-                        <EyeOff className="w-3.5 h-3.5 text-gray-500" />
+                        <EyeOff className="w-3 h-3 text-gray-500" />
                       )}
                     </Button>
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="h-7 w-7 hover:bg-white/10"
+                      className="h-6 w-6 hover:bg-white/10"
                       onClick={(e) => {
                         e.stopPropagation();
                         onDuplicate(obj.id);
                       }}
                     >
-                      <Copy className="w-3.5 h-3.5 text-gray-300" />
+                      <Copy className="w-3 h-3 text-gray-300" />
                     </Button>
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="h-7 w-7 hover:bg-red-500/20"
+                      className="h-6 w-6 hover:bg-red-500/20"
                       onClick={(e) => {
                         e.stopPropagation();
                         onRemove(obj.id);
                       }}
                     >
-                      <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                      <Trash2 className="w-3 h-3 text-red-400" />
                     </Button>
                   </div>
                 </div>
 
                 {selectedId === obj.id && (
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l" />
+                  <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-blue-500 rounded-l" />
                 )}
               </div>
             ))
