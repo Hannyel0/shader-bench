@@ -215,6 +215,7 @@ void main() {
     return `// Fragment Shader
 uniform vec3 uColor;
 uniform int uVisualizationMode; // 0: solid, 1: height, 2: normal, 3: wireframe
+uniform float uRoughness; // Material roughness (0 = smooth/glossy, 1 = rough/matte)
 
 varying vec3 vNormal;
 varying vec3 vPosition;
@@ -225,9 +226,9 @@ vec3 getHeightColor(float height) {
   vec3 lowColor = vec3(0.0, 0.2, 0.8);
   vec3 midColor = vec3(0.2, 0.8, 0.2);
   vec3 highColor = vec3(0.8, 0.2, 0.0);
-  
+
   float normalizedHeight = height * 0.5 + 0.5; // Map -1,1 to 0,1
-  
+
   if(normalizedHeight < 0.5) {
     return mix(lowColor, midColor, normalizedHeight * 2.0);
   } else {
@@ -239,11 +240,33 @@ void main() {
   vec3 finalColor;
 
   if(uVisualizationMode == 0) {
-    // Solid color with basic lighting
+    // PBR-inspired lighting with roughness control
+    vec3 normal = normalize(vNormal);
+    vec3 viewDir = normalize(cameraPosition - vPosition);
     vec3 lightDir = normalize(vec3(5.0, 5.0, 5.0));
-    float diff = max(dot(normalize(vNormal), lightDir), 0.0);
+
+    // Diffuse component
+    float diff = max(dot(normal, lightDir), 0.0);
+
+    // Specular component (Blinn-Phong with roughness)
+    vec3 halfDir = normalize(lightDir + viewDir);
+    float specAngle = max(dot(normal, halfDir), 0.0);
+
+    // Convert roughness (0-1) to specular power (high power = smooth, low = rough)
+    // Non-linear mapping: roughness 0 -> power 256, roughness 1 -> power 4
+    float shininess = mix(256.0, 4.0, uRoughness);
+    float spec = pow(specAngle, shininess);
+
+    // Fresnel effect (increases spec at grazing angles)
+    float fresnel = pow(1.0 - max(dot(viewDir, normal), 0.0), 3.0);
+    spec = mix(spec, spec * 2.0, fresnel * (1.0 - uRoughness));
+
+    // Combine lighting
     float ambient = 0.3;
-    finalColor = uColor * (ambient + diff * 0.7);
+    vec3 diffuseColor = uColor * (ambient + diff * 0.7);
+    vec3 specularColor = vec3(1.0) * spec * (1.0 - uRoughness * 0.7);
+
+    finalColor = diffuseColor + specularColor;
   } else if(uVisualizationMode == 1) {
     // Height-based coloring
     finalColor = getHeightColor(vDisplacement);
@@ -446,7 +469,8 @@ const uniforms = {
   uUVScale: { value: ${params.uvScale} },
   uAnimationSpeed: { value: ${params.animationSpeed} },
   uColor: { value: new THREE.Color(0x4a9eff) },
-  uVisualizationMode: { value: ${visualizationMode} }
+  uVisualizationMode: { value: ${visualizationMode} },
+  uRoughness: { value: ${params.roughness} }
 };`,
 
         uniformUpdate: `// Update uniforms (call when parameters change)
@@ -458,7 +482,8 @@ material.uniforms.uGain.value = ${params.gain};
 material.uniforms.uRidgeOffset.value = ${params.ridgeOffset};
 material.uniforms.uWarpStrength.value = ${params.warpStrength};
 material.uniforms.uUVScale.value = ${params.uvScale};
-material.uniforms.uAnimationSpeed.value = ${params.animationSpeed};`,
+material.uniforms.uAnimationSpeed.value = ${params.animationSpeed};
+material.uniforms.uRoughness.value = ${params.roughness};`,
 
         materialCreation: `// Create shader material
 const material = new THREE.ShaderMaterial({

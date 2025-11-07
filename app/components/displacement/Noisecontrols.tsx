@@ -324,6 +324,29 @@ export const NoiseControls: React.FC<NoiseControlsProps> = ({
             </Select>
           </div>
 
+          {/* Roughness Slider (visible only in solid mode) */}
+          {params.visualizationMode === "solid" && (
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <Label>Surface Roughness</Label>
+                <Badge variant="outline" className="font-mono">
+                  {params.roughness.toFixed(2)}
+                </Badge>
+              </div>
+              <Slider
+                value={[params.roughness]}
+                onValueChange={(v) => handleSliderChange("roughness", v)}
+                min={0}
+                max={1}
+                step={0.01}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground">
+                0 = smooth/glossy, 1 = rough/matte
+              </p>
+            </div>
+          )}
+
           {/* Wireframe Toggle */}
           <div className="flex items-center justify-between">
             <Label>Wireframe Overlay</Label>
@@ -432,6 +455,7 @@ export const PRESETS: Record<string, DisplacementParams> = {
     wireframe: false,
     subdivisions: 128,
     visualizationMode: "solid",
+    roughness: 0.5,
   },
   mountains: {
     noiseType: "ridge",
@@ -447,6 +471,7 @@ export const PRESETS: Record<string, DisplacementParams> = {
     wireframe: false,
     subdivisions: 128,
     visualizationMode: "height",
+    roughness: 0.7,
   },
   ocean: {
     noiseType: "fbmSimplex",
@@ -462,6 +487,7 @@ export const PRESETS: Record<string, DisplacementParams> = {
     wireframe: false,
     subdivisions: 128,
     visualizationMode: "height",
+    roughness: 0.2,
   },
   organic: {
     noiseType: "domainWarp",
@@ -477,6 +503,7 @@ export const PRESETS: Record<string, DisplacementParams> = {
     wireframe: false,
     subdivisions: 128,
     visualizationMode: "normal",
+    roughness: 0.6,
   },
   cellular: {
     noiseType: "voronoiF2MinusF1",
@@ -492,6 +519,7 @@ export const PRESETS: Record<string, DisplacementParams> = {
     wireframe: false,
     subdivisions: 128,
     visualizationMode: "solid",
+    roughness: 0.4,
   },
   turbulent: {
     noiseType: "turbulence",
@@ -507,5 +535,6 @@ export const PRESETS: Record<string, DisplacementParams> = {
     wireframe: false,
     subdivisions: 128,
     visualizationMode: "height",
+    roughness: 0.8,
   },
 };

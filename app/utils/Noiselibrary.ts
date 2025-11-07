@@ -405,5 +405,6 @@ export const PRESETS = {
     wireframe: false,
     subdivisions: 128,
     visualizationMode: "solid" as "solid" | "height" | "normal" | "wireframe",
+    roughness: 0.5,
   },
 };
