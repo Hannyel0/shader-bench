@@ -125,7 +125,7 @@ export const TransformableObject = React.forwardRef<
     `;
   }, [hasDisplacement, displacement?.noiseType]);
 
-  // Fragment shader with selection highlight
+  // Fragment shader
   const fragmentShader = useMemo(() => {
     if (!hasDisplacement) return null;
 
@@ -133,7 +133,6 @@ export const TransformableObject = React.forwardRef<
       uniform vec3 uColor;
       uniform int uVisualizationMode;
       uniform float uRoughness;
-      uniform bool uSelected;
 
       varying vec3 vNormal;
       varying vec3 vPosition;
@@ -185,11 +184,6 @@ export const TransformableObject = React.forwardRef<
           finalColor = uColor;
         }
 
-        // Add selection highlight
-        if(uSelected) {
-          finalColor = mix(finalColor, vec3(0.3, 0.6, 1.0), 0.2);
-        }
-
         gl_FragColor = vec4(finalColor, 1.0);
       }
     `;
@@ -222,7 +216,6 @@ export const TransformableObject = React.forwardRef<
             : 3,
       },
       uRoughness: { value: object.material.roughness },
-      uSelected: { value: isSelected },
     };
   }, [hasDisplacement, object.id]);
 
@@ -249,10 +242,9 @@ export const TransformableObject = React.forwardRef<
           : 3;
       mat.uniforms.uColor.value.set(object.material.color);
       mat.uniforms.uRoughness.value = object.material.roughness;
-      mat.uniforms.uSelected.value = isSelected;
       mat.wireframe = displacement.wireframe;
     }
-  }, [hasDisplacement, displacement, object.material, isSelected]);
+  }, [hasDisplacement, displacement, object.material]);
 
   // Update standard material
   React.useEffect(() => {
@@ -264,16 +256,8 @@ export const TransformableObject = React.forwardRef<
       mat.opacity = object.material.opacity;
       mat.emissiveIntensity = object.material.emissiveIntensity;
       mat.transparent = object.material.opacity < 1;
-
-      if (isSelected) {
-        mat.emissive.setHex(0x4a9eff);
-        mat.emissiveIntensity = 0.3;
-      } else {
-        mat.emissive.setHex(0x000000);
-        mat.emissiveIntensity = object.material.emissiveIntensity;
-      }
     }
-  }, [hasDisplacement, object.material, isSelected]);
+  }, [hasDisplacement, object.material]);
 
   // Animate shader time
   useFrame((state) => {
@@ -318,10 +302,28 @@ export const TransformableObject = React.forwardRef<
       rotation={worldTransform.rotation}
       scale={worldTransform.scale}
     >
+      {/* Selection Outline - Rendered first (behind) */}
+      {isSelected && (
+        <mesh
+          geometry={geometry}
+          scale={1.01}
+          renderOrder={-1}
+        >
+          <meshBasicMaterial
+            color="#ffff00"
+            side={THREE.BackSide}
+            transparent
+            opacity={0.5}
+          />
+        </mesh>
+      )}
+
+      {/* Main mesh */}
       <mesh
         ref={meshRef}
         geometry={geometry}
         onClick={handleClick}
+        renderOrder={0}
         onPointerOver={(e: ThreeEvent<PointerEvent>) => {
           e.stopPropagation();
           document.body.style.cursor = "pointer";
