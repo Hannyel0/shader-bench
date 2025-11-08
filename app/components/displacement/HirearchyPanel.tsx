@@ -1,10 +1,23 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import {
   Plus,
   Trash2,
@@ -16,11 +29,11 @@ import {
   Square,
   Cylinder as CylinderIcon,
   ChevronRight,
-  ChevronDown,
   Search,
   X,
   Folder,
   FolderOpen,
+  MoreHorizontal,
 } from "lucide-react";
 import {
   SceneObject,
@@ -28,16 +41,7 @@ import {
   createSceneObject,
   getRootObjects,
   getChildren,
-  getDepth,
-  getAllDescendants,
 } from "./SceneManager";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
 
 interface HierarchyPanelProps {
   objects: SceneObject[];
@@ -61,13 +65,6 @@ interface TreeNodeProps {
   onDuplicate: (id: string) => void;
   onToggleVisibility: (id: string) => void;
   onToggleExpanded: (id: string) => void;
-  onReparent: (childId: string, newParentId: string | null) => void;
-  onContextMenu: (object: SceneObject, event: React.MouseEvent) => void;
-  draggedId: string | null;
-  onDragStart: (id: string) => void;
-  onDragEnd: () => void;
-  onDragOver: (id: string | null, event: React.DragEvent) => void;
-  onDrop: (targetId: string | null) => void;
 }
 
 const TreeNode: React.FC<TreeNodeProps> = ({
@@ -80,204 +77,144 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   onDuplicate,
   onToggleVisibility,
   onToggleExpanded,
-  onReparent,
-  onContextMenu,
-  draggedId,
-  onDragStart,
-  onDragEnd,
-  onDragOver,
-  onDrop,
 }) => {
   const children = getChildren(allObjects, object.id);
   const hasChildren = children.length > 0;
   const isSelected = selectedId === object.id;
-  const isDragging = draggedId === object.id;
-  const [isOver, setIsOver] = useState(false);
-
-  const handleDragStart = (e: React.DragEvent) => {
-    e.stopPropagation();
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("objectId", object.id);
-    onDragStart(object.id);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsOver(true);
-    onDragOver(object.id, e);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsOver(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsOver(false);
-    onDrop(object.id);
-  };
 
   const getGeometryIcon = (type: GeometryType) => {
     const iconProps = { className: "w-3.5 h-3.5" };
     switch (type) {
       case "sphere":
-        return <Circle {...iconProps} />;
+        return <Circle {...iconProps} className="w-3.5 h-3.5 text-blue-400" />;
       case "box":
-        return <Box {...iconProps} />;
+        return <Box {...iconProps} className="w-3.5 h-3.5 text-green-400" />;
       case "plane":
-        return <Square {...iconProps} />;
+        return <Square {...iconProps} className="w-3.5 h-3.5 text-purple-400" />;
       case "cylinder":
-        return <CylinderIcon {...iconProps} />;
+        return <CylinderIcon {...iconProps} className="w-3.5 h-3.5 text-yellow-400" />;
       case "torus":
-        return <Circle {...iconProps} />;
+        return <Circle {...iconProps} className="w-3.5 h-3.5 text-pink-400" />;
       default:
-        return <Circle {...iconProps} />;
+        return <Circle {...iconProps} className="w-3.5 h-3.5 text-gray-400" />;
     }
   };
 
-  return (
-    <>
-      <div
-        draggable
-        onDragStart={handleDragStart}
-        onDragEnd={onDragEnd}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          onContextMenu(object, e);
-        }}
-        className={`
-          group relative rounded border transition-all cursor-pointer select-none
-          ${isDragging ? "opacity-50" : "opacity-100"}
-          ${isOver ? "border-blue-400 bg-blue-500/20" : ""}
-          ${
-            isSelected
-              ? "bg-blue-500/20 border-blue-500/40"
-              : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
-          }
-        `}
-        style={{ marginLeft: `${depth * 16}px` }}
-        onClick={(e) => {
-          e.stopPropagation();
-          onSelect(object.id);
-        }}
-      >
-        <div className="flex items-center gap-1 p-1.5">
-          {/* Expand/Collapse Button */}
-          {hasChildren ? (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleExpanded(object.id);
-              }}
-              className="p-0.5 hover:bg-white/10 rounded transition-colors"
+  if (hasChildren) {
+    return (
+      <Collapsible open={object.expanded} onOpenChange={() => onToggleExpanded(object.id)}>
+        <div
+          className={`
+            group relative rounded-md border transition-all
+            ${
+              isSelected
+                ? "bg-[#FF5C3D]/10 border-[#FF5C3D]/30 shadow-sm"
+                : "bg-zinc-800/30 border-zinc-700/50 hover:bg-zinc-800/50 hover:border-zinc-600"
+            }
+          `}
+          style={{ marginLeft: `${depth * 12}px` }}
+        >
+          <div className="flex items-center gap-1.5 px-2 py-1.5">
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 w-5 p-0 hover:bg-zinc-700"
+              >
+                <ChevronRight
+                  className={`h-3 w-3 text-zinc-400 transition-transform ${
+                    object.expanded ? "rotate-90" : ""
+                  }`}
+                />
+              </Button>
+            </CollapsibleTrigger>
+
+            <div
+              className="flex-1 flex items-center gap-2 cursor-pointer"
+              onClick={() => onSelect(object.id)}
             >
               {object.expanded ? (
-                <ChevronDown className="w-3 h-3 text-gray-300" />
+                <FolderOpen className="w-3.5 h-3.5 text-amber-400" />
               ) : (
-                <ChevronRight className="w-3 h-3 text-gray-300" />
+                <Folder className="w-3.5 h-3.5 text-amber-400" />
               )}
-            </button>
-          ) : (
-            <div className="w-4" />
-          )}
 
-          {/* Icon */}
-          <div
-            className={`
-            p-1 rounded flex items-center justify-center
-            ${isSelected ? "bg-blue-500/30" : "bg-white/10"}
-          `}
-          >
-            {hasChildren ? (
-              object.expanded ? (
-                <FolderOpen className="w-3.5 h-3.5 text-yellow-400" />
-              ) : (
-                <Folder className="w-3.5 h-3.5 text-yellow-400" />
-              )
-            ) : (
-              getGeometryIcon(object.type)
-            )}
-          </div>
+              <span className="text-xs font-medium text-zinc-200 truncate">
+                {object.name}
+              </span>
 
-          {/* Name and Badges */}
-          <div className="flex-1 min-w-0">
-            <div className="text-[10px] font-medium truncate text-white">
-              {object.name}
-            </div>
-            <div className="flex items-center gap-1 mt-0.5">
-              <Badge className="h-3 px-1 text-[8px] bg-green-500/20 text-green-300 border-0">
-                Transform
+              <Badge
+                variant="outline"
+                className="h-4 px-1 text-[9px] bg-zinc-800/50 text-zinc-400 border-zinc-700"
+              >
+                {children.length}
               </Badge>
-              {object.displacement && (
-                <Badge className="h-3 px-1 text-[8px] bg-blue-500/20 text-blue-300 border-0">
-                  Displacement
-                </Badge>
-              )}
-              {hasChildren && (
-                <Badge className="h-3 px-1 text-[8px] bg-purple-500/20 text-purple-300 border-0">
-                  {children.length}
-                </Badge>
-              )}
+            </div>
+
+            <div className="flex items-center gap-0.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 hover:bg-zinc-700"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleVisibility(object.id);
+                }}
+              >
+                {object.visible ? (
+                  <Eye className="w-3 h-3 text-zinc-400" />
+                ) : (
+                  <EyeOff className="w-3 h-3 text-zinc-600" />
+                )}
+              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 hover:bg-zinc-700"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontal className="w-3.5 h-3.5 text-zinc-400" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-40 bg-zinc-900 border-zinc-800"
+                >
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDuplicate(object.id);
+                    }}
+                    className="text-zinc-300 hover:bg-zinc-800 text-xs"
+                  >
+                    <Copy className="w-3.5 h-3.5 mr-2" />
+                    Duplicate
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-zinc-800" />
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemove(object.id);
+                    }}
+                    className="text-red-400 hover:bg-red-500/10 text-xs"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-6 w-6 hover:bg-white/10"
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleVisibility(object.id);
-              }}
-            >
-              {object.visible ? (
-                <Eye className="w-3 h-3 text-gray-300" />
-              ) : (
-                <EyeOff className="w-3 h-3 text-gray-500" />
-              )}
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-6 w-6 hover:bg-white/10"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDuplicate(object.id);
-              }}
-            >
-              <Copy className="w-3 h-3 text-gray-300" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-6 w-6 hover:bg-red-500/20"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove(object.id);
-              }}
-            >
-              <Trash2 className="w-3 h-3 text-red-400" />
-            </Button>
-          </div>
+          {isSelected && (
+            <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#FF5C3D] rounded-l" />
+          )}
         </div>
 
-        {/* Selection Indicator */}
-        {isSelected && (
-          <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-blue-500 rounded-l" />
-        )}
-      </div>
-
-      {/* Render Children Recursively */}
-      {hasChildren && object.expanded && (
-        <div className="mt-0.5 space-y-0.5">
+        <CollapsibleContent className="mt-1 space-y-1">
           {children.map((child) => (
             <TreeNode
               key={child.id}
@@ -290,18 +227,106 @@ const TreeNode: React.FC<TreeNodeProps> = ({
               onDuplicate={onDuplicate}
               onToggleVisibility={onToggleVisibility}
               onToggleExpanded={onToggleExpanded}
-              onReparent={onReparent}
-              onContextMenu={onContextMenu}
-              draggedId={draggedId}
-              onDragStart={onDragStart}
-              onDragEnd={onDragEnd}
-              onDragOver={onDragOver}
-              onDrop={onDrop}
             />
           ))}
+        </CollapsibleContent>
+      </Collapsible>
+    );
+  }
+
+  return (
+    <div
+      className={`
+        group relative rounded-md border transition-all cursor-pointer
+        ${
+          isSelected
+            ? "bg-[#FF5C3D]/10 border-[#FF5C3D]/30 shadow-sm"
+            : "bg-zinc-800/30 border-zinc-700/50 hover:bg-zinc-800/50 hover:border-zinc-600"
+        }
+      `}
+      style={{ marginLeft: `${depth * 12}px` }}
+      onClick={() => onSelect(object.id)}
+    >
+      <div className="flex items-center gap-2 px-2 py-1.5">
+        <div className="w-5" />
+
+        {getGeometryIcon(object.type)}
+
+        <span className="flex-1 text-xs font-medium text-zinc-200 truncate">
+          {object.name}
+        </span>
+
+        <div className="flex items-center gap-1">
+          {object.displacement && (
+            <Badge
+              variant="outline"
+              className="h-4 px-1 text-[8px] bg-blue-500/10 text-blue-400 border-blue-500/30"
+            >
+              Disp
+            </Badge>
+          )}
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 hover:bg-zinc-700"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleVisibility(object.id);
+            }}
+          >
+            {object.visible ? (
+              <Eye className="w-3 h-3 text-zinc-400" />
+            ) : (
+              <EyeOff className="w-3 h-3 text-zinc-600" />
+            )}
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 hover:bg-zinc-700"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreHorizontal className="w-3.5 h-3.5 text-zinc-400" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="w-40 bg-zinc-900 border-zinc-800"
+            >
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDuplicate(object.id);
+                }}
+                className="text-zinc-300 hover:bg-zinc-800 text-xs"
+              >
+                <Copy className="w-3.5 h-3.5 mr-2" />
+                Duplicate
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-zinc-800" />
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove(object.id);
+                }}
+                className="text-red-400 hover:bg-red-500/10 text-xs"
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
+      </div>
+
+      {isSelected && (
+        <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#FF5C3D] rounded-l" />
       )}
-    </>
+    </div>
   );
 };
 
@@ -317,50 +342,16 @@ export const HierarchyPanel: React.FC<HierarchyPanelProps> = ({
   onReparent = () => {},
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [draggedId, setDraggedId] = useState<string | null>(null);
-  const [contextMenu, setContextMenu] = useState<{
-    object: SceneObject;
-    x: number;
-    y: number;
-  } | null>(null);
 
-  const handleAddObject = (
-    type: GeometryType,
-    parentId: string | null = null
-  ) => {
+  const handleAddObject = (type: GeometryType, parentId: string | null = null) => {
     const offset = objects.length * 0.3;
-    const position: [number, number, number] = parentId
-      ? [0, 0, 0]
-      : [offset, 0, 0];
+    const position: [number, number, number] = parentId ? [0, 0, 0] : [offset, 0, 0];
     const newObject = createSceneObject(type, position, parentId);
     onAdd(newObject);
   };
 
-  const handleContextMenu = useCallback(
-    (object: SceneObject, event: React.MouseEvent) => {
-      setContextMenu({
-        object,
-        x: event.clientX,
-        y: event.clientY,
-      });
-    },
-    []
-  );
-
-  const handleDrop = useCallback(
-    (targetId: string | null) => {
-      if (draggedId && draggedId !== targetId) {
-        onReparent(draggedId, targetId);
-      }
-      setDraggedId(null);
-    },
-    [draggedId, onReparent]
-  );
-
-  // Filter objects based on search
   const filteredObjects = useMemo(() => {
     if (!searchQuery.trim()) return objects;
-
     const query = searchQuery.toLowerCase();
     return objects.filter(
       (obj) =>
@@ -369,41 +360,41 @@ export const HierarchyPanel: React.FC<HierarchyPanelProps> = ({
     );
   }, [objects, searchQuery]);
 
-  // Get root objects for tree rendering
   const rootObjects = useMemo(() => {
     if (!searchQuery.trim()) {
       return getRootObjects(filteredObjects);
     }
-    // When searching, show all matching objects as roots
     return filteredObjects;
   }, [filteredObjects, searchQuery]);
 
-  // Calculate statistics
   const stats = useMemo(() => {
     const visibleCount = objects.filter((obj) => obj.visible).length;
     const hiddenCount = objects.length - visibleCount;
-    const withDisplacement = objects.filter((obj) => obj.displacement).length;
-
-    return { visibleCount, hiddenCount, withDisplacement };
+    return { visibleCount, hiddenCount };
   }, [objects]);
 
   return (
-    <div className="w-full h-full flex flex-col">
+    <div className="w-full h-full flex flex-col bg-zinc-900/50 rounded-lg border border-zinc-800">
       {/* Header */}
-      <div className="p-3 border-b border-white/10">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold text-sm text-white">Hierarchy</h3>
-          <div className="flex items-center gap-1">
+      <div className="flex-shrink-0 p-3 border-b border-zinc-800">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-[#FF5C3D]/10 border border-[#FF5C3D]/20">
+              <Folder className="h-3.5 w-3.5 text-[#FF5C3D]" />
+            </div>
+            <h3 className="font-semibold text-xs text-white">Hierarchy</h3>
+          </div>
+          <div className="flex items-center gap-1.5">
             <Badge
-              variant="secondary"
-              className="h-5 text-[10px] bg-white/10 text-white border-0"
+              variant="outline"
+              className="h-5 text-[9px] bg-zinc-800/50 text-zinc-400 border-zinc-700"
             >
               {objects.length}
             </Badge>
             {stats.hiddenCount > 0 && (
               <Badge
-                variant="secondary"
-                className="h-5 text-[10px] bg-gray-500/20 text-gray-300 border-0"
+                variant="outline"
+                className="h-5 text-[9px] bg-zinc-800/50 text-zinc-500 border-zinc-700"
               >
                 <EyeOff className="w-2.5 h-2.5 mr-0.5" />
                 {stats.hiddenCount}
@@ -414,82 +405,79 @@ export const HierarchyPanel: React.FC<HierarchyPanelProps> = ({
 
         {/* Search Bar */}
         <div className="relative mb-2">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-500" />
           <Input
             type="text"
-            placeholder="Search hierarchy..."
+            placeholder="Search objects..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-7 pl-7 pr-7 text-xs bg-black/40 border-white/20 text-white placeholder:text-gray-500"
+            className="h-7 pl-8 pr-8 text-xs bg-zinc-800/50 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-[#FF5C3D]/50"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-white/10 rounded p-0.5"
+              className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-zinc-700 rounded p-0.5"
             >
-              <X className="w-3 h-3 text-gray-400" />
+              <X className="w-3 h-3 text-zinc-500" />
             </button>
           )}
         </div>
 
-        {/* Add Object Dropdown */}
+        {/* Add Object Button */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               size="sm"
-              className="w-full h-7 text-[10px] bg-blue-600 hover:bg-blue-700 text-white"
+              className="w-full h-7 text-xs bg-[#FF5C3D] hover:bg-[#FF5C3D]/90 text-white"
             >
-              <Plus className="w-3 h-3 mr-1.5" />
+              <Plus className="w-3.5 h-3.5 mr-1.5" />
               Add Object
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="start"
-            className="w-44 bg-black/95 backdrop-blur-md border-white/20"
-          >
+          <DropdownMenuContent align="start" className="w-48 bg-zinc-900 border-zinc-800">
             <DropdownMenuItem
               onClick={() => handleAddObject("sphere")}
-              className="text-white hover:bg-white/10 text-xs"
+              className="text-zinc-300 hover:bg-zinc-800 text-xs"
             >
-              <Circle className="w-3 h-3 mr-2" />
+              <Circle className="w-3.5 h-3.5 mr-2 text-blue-400" />
               Sphere
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => handleAddObject("box")}
-              className="text-white hover:bg-white/10 text-xs"
+              className="text-zinc-300 hover:bg-zinc-800 text-xs"
             >
-              <Box className="w-3 h-3 mr-2" />
+              <Box className="w-3.5 h-3.5 mr-2 text-green-400" />
               Box
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => handleAddObject("plane")}
-              className="text-white hover:bg-white/10 text-xs"
+              className="text-zinc-300 hover:bg-zinc-800 text-xs"
             >
-              <Square className="w-3 h-3 mr-2" />
+              <Square className="w-3.5 h-3.5 mr-2 text-purple-400" />
               Plane
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => handleAddObject("cylinder")}
-              className="text-white hover:bg-white/10 text-xs"
+              className="text-zinc-300 hover:bg-zinc-800 text-xs"
             >
-              <CylinderIcon className="w-3 h-3 mr-2" />
+              <CylinderIcon className="w-3.5 h-3.5 mr-2 text-yellow-400" />
               Cylinder
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => handleAddObject("torus")}
-              className="text-white hover:bg-white/10 text-xs"
+              className="text-zinc-300 hover:bg-zinc-800 text-xs"
             >
-              <Circle className="w-3 h-3 mr-2" />
+              <Circle className="w-3.5 h-3.5 mr-2 text-pink-400" />
               Torus
             </DropdownMenuItem>
             {selectedId && (
               <>
-                <DropdownMenuSeparator className="bg-white/10" />
+                <DropdownMenuSeparator className="bg-zinc-800" />
                 <DropdownMenuItem
                   onClick={() => handleAddObject("sphere", selectedId)}
-                  className="text-white hover:bg-white/10 text-xs"
+                  className="text-zinc-300 hover:bg-zinc-800 text-xs"
                 >
-                  <Plus className="w-3 h-3 mr-2" />
+                  <Plus className="w-3.5 h-3.5 mr-2" />
                   Add as Child
                 </DropdownMenuItem>
               </>
@@ -500,29 +488,19 @@ export const HierarchyPanel: React.FC<HierarchyPanelProps> = ({
 
       {/* Tree View */}
       <ScrollArea className="flex-1">
-        <div
-          className="p-2 space-y-0.5"
-          onDragOver={(e) => {
-            e.preventDefault();
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            handleDrop(null); // Drop to root
-          }}
-        >
+        <div className="p-2 space-y-1">
           {objects.length === 0 ? (
-            <div className="text-center py-8 text-gray-400 text-xs">
-              <Box className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              No objects in scene
-              <br />
-              <span className="text-[10px]">
+            <div className="flex flex-col items-center justify-center h-32 text-center text-zinc-500 text-xs">
+              <Box className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              <span>No objects in scene</span>
+              <span className="text-[10px] mt-1 text-zinc-600">
                 Click &quot;Add Object&quot; to start
               </span>
             </div>
           ) : rootObjects.length === 0 ? (
-            <div className="text-center py-8 text-gray-400 text-xs">
-              <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              No objects match &quot;{searchQuery}&quot;
+            <div className="flex flex-col items-center justify-center h-32 text-center text-zinc-500 text-xs">
+              <Search className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              <span>No matches found</span>
             </div>
           ) : (
             rootObjects.map((obj) => (
@@ -537,62 +515,11 @@ export const HierarchyPanel: React.FC<HierarchyPanelProps> = ({
                 onDuplicate={onDuplicate}
                 onToggleVisibility={onToggleVisibility}
                 onToggleExpanded={onToggleExpanded}
-                onReparent={onReparent}
-                onContextMenu={handleContextMenu}
-                draggedId={draggedId}
-                onDragStart={setDraggedId}
-                onDragEnd={() => setDraggedId(null)}
-                onDragOver={() => {}}
-                onDrop={handleDrop}
               />
             ))
           )}
         </div>
       </ScrollArea>
-
-      {/* Context Menu (can be enhanced with shadcn ContextMenu component) */}
-      {contextMenu && (
-        <div
-          className="fixed z-50 bg-black/95 backdrop-blur-md border border-white/20 rounded-lg shadow-xl p-1"
-          style={{
-            left: `${contextMenu.x}px`,
-            top: `${contextMenu.y}px`,
-          }}
-          onMouseLeave={() => setContextMenu(null)}
-        >
-          <button
-            className="w-full text-left px-3 py-1.5 text-xs text-white hover:bg-white/10 rounded"
-            onClick={() => {
-              onDuplicate(contextMenu.object.id);
-              setContextMenu(null);
-            }}
-          >
-            <Copy className="w-3 h-3 inline mr-2" />
-            Duplicate
-          </button>
-          <button
-            className="w-full text-left px-3 py-1.5 text-xs text-white hover:bg-white/10 rounded"
-            onClick={() => {
-              handleAddObject("sphere", contextMenu.object.id);
-              setContextMenu(null);
-            }}
-          >
-            <Plus className="w-3 h-3 inline mr-2" />
-            Add Child
-          </button>
-          <div className="h-px bg-white/10 my-1" />
-          <button
-            className="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/20 rounded"
-            onClick={() => {
-              onRemove(contextMenu.object.id);
-              setContextMenu(null);
-            }}
-          >
-            <Trash2 className="w-3 h-3 inline mr-2" />
-            Delete
-          </button>
-        </div>
-      )}
     </div>
   );
 };

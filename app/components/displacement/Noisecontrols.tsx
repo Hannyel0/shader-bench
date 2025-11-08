@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -47,42 +48,44 @@ export const NoiseControls: React.FC<NoiseControlsProps> = ({
     <div className="w-full space-y-3">
           {/* Noise Type Selection */}
           <div className="space-y-2">
-            <Label className="text-xs text-gray-300">Noise Function</Label>
+            <Label className="text-xs font-semibold text-white">Noise Function</Label>
             <Select
               value={params.noiseType}
               onValueChange={(value: NoiseType) =>
                 onParamsChange({ noiseType: value })
               }
             >
-              <SelectTrigger className="h-8 text-xs bg-white/5 border-white/10 text-white">
+              <SelectTrigger className="h-7 text-xs bg-zinc-800/50 border-zinc-700 text-white focus:ring-[#FF5C3D]/50">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-black/95 backdrop-blur-md border-white/20">
+              <SelectContent className="bg-zinc-900 backdrop-blur-md border-zinc-800">
                 {Object.values(NoiseConfigs).map((config) => (
                   <SelectItem
                     key={config.type}
                     value={config.type}
-                    className="text-white hover:bg-white/10 text-xs"
+                    className="text-white hover:bg-zinc-800 text-xs"
                   >
                     {config.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-[10px] text-gray-400">{currentNoiseConfig.description}</p>
+            <p className="text-[10px] text-zinc-500">{currentNoiseConfig.description}</p>
           </div>
 
+          <Separator className="bg-zinc-800" />
+
           {/* Core Parameters */}
-          <div className="pt-2 space-y-3">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Core Parameters</p>
+          <div className="space-y-2">
+            <Label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">Core</Label>
 
             {/* Amplitude */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
-                <Label className="text-xs text-gray-300">Amplitude</Label>
-                <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
+                <Label className="text-xs text-white">Amplitude</Label>
+                <span className="text-[10px] text-zinc-500 font-mono">
                   {params.amplitude.toFixed(2)}
-                </Badge>
+                </span>
               </div>
               <Slider
                 value={[params.amplitude]}
@@ -90,17 +93,16 @@ export const NoiseControls: React.FC<NoiseControlsProps> = ({
                 min={0}
                 max={1}
                 step={0.01}
-                className="w-full"
               />
             </div>
 
             {/* Frequency */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
-                <Label className="text-xs text-gray-300">Frequency</Label>
-                <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
+                <Label className="text-xs text-white">Frequency</Label>
+                <span className="text-[10px] text-zinc-500 font-mono">
                   {params.frequency.toFixed(2)}
-                </Badge>
+                </span>
               </div>
               <Slider
                 value={[params.frequency]}
@@ -114,10 +116,10 @@ export const NoiseControls: React.FC<NoiseControlsProps> = ({
             {/* UV Scale */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
-                <Label className="text-xs text-gray-300">UV Scale</Label>
-                <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
+                <Label className="text-xs text-white">UV Scale</Label>
+                <span className="text-[10px] text-zinc-500 font-mono">
                   {params.uvScale.toFixed(2)}
-                </Badge>
+                </span>
               </div>
               <Slider
                 value={[params.uvScale]}
@@ -131,118 +133,128 @@ export const NoiseControls: React.FC<NoiseControlsProps> = ({
 
           {/* Fractal Parameters (conditional) */}
           {currentNoiseConfig.requiresOctaves && (
-            <div className="pt-2 space-y-3 border-t border-white/10">
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Fractal</p>
+            <>
+              <Separator className="bg-zinc-800" />
+              <div className="space-y-2">
+                <Label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">Fractal</Label>
 
-              {/* Octaves */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <Label className="text-xs text-gray-300">Octaves</Label>
-                  <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
-                    {params.octaves}
-                  </Badge>
+                {/* Octaves */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-xs text-white">Octaves</Label>
+                    <span className="text-[10px] text-zinc-500 font-mono">
+                      {params.octaves}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[params.octaves]}
+                    onValueChange={(v) => handleSliderChange("octaves", v)}
+                    min={1}
+                    max={8}
+                    step={1}
+                  />
                 </div>
-                <Slider
-                  value={[params.octaves]}
-                  onValueChange={(v) => handleSliderChange("octaves", v)}
-                  min={1}
-                  max={8}
-                  step={1}
-                />
-              </div>
 
-              {/* Lacunarity */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <Label className="text-xs text-gray-300">Lacunarity</Label>
-                  <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
-                    {params.lacunarity.toFixed(2)}
-                  </Badge>
+                {/* Lacunarity */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-xs text-white">Lacunarity</Label>
+                    <span className="text-[10px] text-zinc-500 font-mono">
+                      {params.lacunarity.toFixed(2)}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[params.lacunarity]}
+                    onValueChange={(v) => handleSliderChange("lacunarity", v)}
+                    min={1}
+                    max={4}
+                    step={0.1}
+                  />
                 </div>
-                <Slider
-                  value={[params.lacunarity]}
-                  onValueChange={(v) => handleSliderChange("lacunarity", v)}
-                  min={1}
-                  max={4}
-                  step={0.1}
-                />
-              </div>
 
-              {/* Gain */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <Label className="text-xs text-gray-300">Gain</Label>
-                  <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
-                    {params.gain.toFixed(2)}
-                  </Badge>
+                {/* Gain */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-xs text-white">Gain</Label>
+                    <span className="text-[10px] text-zinc-500 font-mono">
+                      {params.gain.toFixed(2)}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[params.gain]}
+                    onValueChange={(v) => handleSliderChange("lacunarity", v)}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                  />
                 </div>
-                <Slider
-                  value={[params.gain]}
-                  onValueChange={(v) => handleSliderChange("gain", v)}
-                  min={0}
-                  max={1}
-                  step={0.01}
-                />
               </div>
-            </div>
+            </>
           )}
 
           {/* Ridge Offset (conditional) */}
           {currentNoiseConfig.requiresRidgeOffset && (
-            <div className="pt-2 space-y-3 border-t border-white/10">
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Ridge</p>
+            <>
+              <Separator className="bg-zinc-800" />
+              <div className="space-y-2">
+                <Label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">Ridge</Label>
 
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <Label className="text-xs text-gray-300">Offset</Label>
-                  <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
-                    {params.ridgeOffset.toFixed(2)}
-                  </Badge>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-xs text-white">Offset</Label>
+                    <span className="text-[10px] text-zinc-500 font-mono">
+                      {params.ridgeOffset.toFixed(2)}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[params.ridgeOffset]}
+                    onValueChange={(v) => handleSliderChange("ridgeOffset", v)}
+                    min={0}
+                    max={2}
+                    step={0.01}
+                  />
                 </div>
-                <Slider
-                  value={[params.ridgeOffset]}
-                  onValueChange={(v) => handleSliderChange("ridgeOffset", v)}
-                  min={0}
-                  max={2}
-                  step={0.01}
-                />
               </div>
-            </div>
+            </>
           )}
 
           {/* Warp Strength (conditional) */}
           {currentNoiseConfig.requiresWarpStrength && (
-            <div className="pt-2 space-y-3 border-t border-white/10">
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Domain Warp</p>
+            <>
+              <Separator className="bg-zinc-800" />
+              <div className="space-y-2">
+                <Label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">Domain Warp</Label>
 
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <Label className="text-xs text-gray-300">Strength</Label>
-                  <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
-                    {params.warpStrength.toFixed(2)}
-                  </Badge>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-xs text-white">Strength</Label>
+                    <span className="text-[10px] text-zinc-500 font-mono">
+                      {params.warpStrength.toFixed(2)}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[params.warpStrength]}
+                    onValueChange={(v) => handleSliderChange("warpStrength", v)}
+                    min={0}
+                    max={5}
+                    step={0.1}
+                  />
                 </div>
-                <Slider
-                  value={[params.warpStrength]}
-                  onValueChange={(v) => handleSliderChange("warpStrength", v)}
-                  min={0}
-                  max={5}
-                  step={0.1}
-                />
               </div>
-            </div>
+            </>
           )}
 
           {/* Animation */}
-          <div className="pt-2 space-y-3 border-t border-white/10">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Animation</p>
+          <Separator className="bg-zinc-800" />
+          <div className="space-y-2">
+            <Label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">Animation</Label>
 
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
-                <Label className="text-xs text-gray-300">Speed</Label>
-                <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
+                <Label className="text-xs text-white">Speed</Label>
+                <span className="text-[10px] text-zinc-500 font-mono">
                   {params.animationSpeed.toFixed(2)}
-                </Badge>
+                </span>
               </div>
               <Slider
                 value={[params.animationSpeed]}
@@ -255,32 +267,33 @@ export const NoiseControls: React.FC<NoiseControlsProps> = ({
           </div>
 
           {/* Visualization */}
-          <div className="pt-2 space-y-3 border-t border-white/10">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Visualization</p>
+          <Separator className="bg-zinc-800" />
+          <div className="space-y-2">
+            <Label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">Visualization</Label>
 
             {/* Visualization Mode */}
             <div className="space-y-2">
-              <Label className="text-xs text-gray-300">Coloring Mode</Label>
+              <Label className="text-xs text-white">Coloring Mode</Label>
               <Select
                 value={params.visualizationMode}
                 onValueChange={(
                   value: "solid" | "height" | "normal" | "wireframe"
                 ) => onParamsChange({ visualizationMode: value })}
               >
-                <SelectTrigger className="h-8 text-xs bg-white/5 border-white/10 text-white">
+                <SelectTrigger className="h-7 text-xs bg-zinc-800/50 border-zinc-700 text-white focus:ring-[#FF5C3D]/50">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-black/95 backdrop-blur-md border-white/20">
-                  <SelectItem value="solid" className="text-white hover:bg-white/10 text-xs">
+                <SelectContent className="bg-zinc-900 backdrop-blur-md border-zinc-800">
+                  <SelectItem value="solid" className="text-white hover:bg-zinc-800 text-xs">
                     Solid Color (Lit)
                   </SelectItem>
-                  <SelectItem value="height" className="text-white hover:bg-white/10 text-xs">
+                  <SelectItem value="height" className="text-white hover:bg-zinc-800 text-xs">
                     Height-based Gradient
                   </SelectItem>
-                  <SelectItem value="normal" className="text-white hover:bg-white/10 text-xs">
+                  <SelectItem value="normal" className="text-white hover:bg-zinc-800 text-xs">
                     Normal Map
                   </SelectItem>
-                  <SelectItem value="wireframe" className="text-white hover:bg-white/10 text-xs">
+                  <SelectItem value="wireframe" className="text-white hover:bg-zinc-800 text-xs">
                     Wireframe
                   </SelectItem>
                 </SelectContent>
@@ -291,10 +304,10 @@ export const NoiseControls: React.FC<NoiseControlsProps> = ({
             {params.visualizationMode === "solid" && (
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
-                  <Label className="text-xs text-gray-300">Roughness</Label>
-                  <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
+                  <Label className="text-xs text-white">Roughness</Label>
+                  <span className="text-[10px] text-zinc-500 font-mono">
                     {params.roughness.toFixed(2)}
-                  </Badge>
+                  </span>
                 </div>
                 <Slider
                   value={[params.roughness]}
@@ -308,15 +321,15 @@ export const NoiseControls: React.FC<NoiseControlsProps> = ({
 
             {/* Wireframe Toggle */}
             <div className="flex items-center justify-between">
-              <Label className="text-xs text-gray-300">Wireframe Overlay</Label>
+              <Label className="text-xs text-white">Wireframe Overlay</Label>
               <Button
                 variant={params.wireframe ? "default" : "outline"}
                 size="sm"
                 onClick={() => onParamsChange({ wireframe: !params.wireframe })}
                 className={`h-6 px-2 text-[10px] ${
                   params.wireframe
-                    ? "bg-blue-600 hover:bg-blue-700 text-white"
-                    : "bg-white/5 hover:bg-white/10 text-white border-white/10"
+                    ? "bg-[#FF5C3D] hover:bg-[#FF5C3D]/90 text-white"
+                    : "bg-zinc-800/50 hover:bg-zinc-700 text-white border-zinc-700"
                 }`}
               >
                 {params.wireframe ? "ON" : "OFF"}
@@ -326,10 +339,10 @@ export const NoiseControls: React.FC<NoiseControlsProps> = ({
             {/* Subdivisions */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
-                <Label className="text-xs text-gray-300">Subdivisions</Label>
-                <Badge variant="outline" className="h-5 text-[10px] font-mono bg-white/5 text-white border-white/10">
+                <Label className="text-xs text-white">Subdivisions</Label>
+                <span className="text-[10px] text-zinc-500 font-mono">
                   {params.subdivisions}
-                </Badge>
+                </span>
               </div>
               <Slider
                 value={[params.subdivisions]}
@@ -342,14 +355,15 @@ export const NoiseControls: React.FC<NoiseControlsProps> = ({
           </div>
 
           {/* Presets */}
-          <div className="pt-2 space-y-2 border-t border-white/10 pb-3">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Presets</p>
+          <Separator className="bg-zinc-800" />
+          <div className="space-y-2 pb-3">
+            <Label className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">Presets</Label>
             <div className="grid grid-cols-2 gap-1.5">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onPresetLoad(PRESETS.mountains)}
-                className="h-7 justify-start text-[10px] bg-white/5 hover:bg-white/10 text-white border-white/10"
+                className="h-7 justify-start text-[10px] bg-zinc-800/50 hover:bg-zinc-700 text-white border-zinc-700"
               >
                 <Mountain className="w-3 h-3 mr-1.5" />
                 Mountains
@@ -358,7 +372,7 @@ export const NoiseControls: React.FC<NoiseControlsProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => onPresetLoad(PRESETS.ocean)}
-                className="h-7 justify-start text-[10px] bg-white/5 hover:bg-white/10 text-white border-white/10"
+                className="h-7 justify-start text-[10px] bg-zinc-800/50 hover:bg-zinc-700 text-white border-zinc-700"
               >
                 <Waves className="w-3 h-3 mr-1.5" />
                 Ocean
@@ -367,7 +381,7 @@ export const NoiseControls: React.FC<NoiseControlsProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => onPresetLoad(PRESETS.organic)}
-                className="h-7 justify-start text-[10px] bg-white/5 hover:bg-white/10 text-white border-white/10"
+                className="h-7 justify-start text-[10px] bg-zinc-800/50 hover:bg-zinc-700 text-white border-zinc-700"
               >
                 <Sparkles className="w-3 h-3 mr-1.5" />
                 Organic
@@ -376,7 +390,7 @@ export const NoiseControls: React.FC<NoiseControlsProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => onPresetLoad(PRESETS.cellular)}
-                className="h-7 justify-start text-[10px] bg-white/5 hover:bg-white/10 text-white border-white/10"
+                className="h-7 justify-start text-[10px] bg-zinc-800/50 hover:bg-zinc-700 text-white border-zinc-700"
               >
                 <Grid3x3 className="w-3 h-3 mr-1.5" />
                 Cellular
@@ -385,7 +399,7 @@ export const NoiseControls: React.FC<NoiseControlsProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => onPresetLoad(PRESETS.turbulent)}
-                className="h-7 justify-start text-[10px] bg-white/5 hover:bg-white/10 text-white border-white/10"
+                className="h-7 justify-start text-[10px] bg-zinc-800/50 hover:bg-zinc-700 text-white border-zinc-700"
               >
                 <Zap className="w-3 h-3 mr-1.5" />
                 Turbulent
@@ -394,7 +408,7 @@ export const NoiseControls: React.FC<NoiseControlsProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => onPresetLoad(PRESETS.default)}
-                className="h-7 justify-start text-[10px] bg-white/5 hover:bg-white/10 text-white border-white/10"
+                className="h-7 justify-start text-[10px] bg-zinc-800/50 hover:bg-zinc-700 text-white border-zinc-700"
               >
                 <RotateCcw className="w-3 h-3 mr-1.5" />
                 Reset

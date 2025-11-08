@@ -4,6 +4,7 @@ import React from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { RotateCcw } from "lucide-react";
 import { SceneObject } from "./SceneManager";
 
@@ -39,7 +40,7 @@ export const TransformTab: React.FC<TransformTabProps> = ({
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-3 space-y-4">
       {/* Position */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -47,51 +48,31 @@ export const TransformTab: React.FC<TransformTabProps> = ({
           <Button
             size="icon"
             variant="ghost"
-            className="h-5 w-5 hover:bg-white/10"
+            className="h-6 w-6 hover:bg-zinc-700"
             onClick={() => resetTransform("position")}
           >
-            <RotateCcw className="w-3 h-3 text-gray-400" />
+            <RotateCcw className="w-3 h-3 text-zinc-400" />
           </Button>
         </div>
         <div className="grid grid-cols-3 gap-2">
-          <div className="space-y-1">
-            <Label className="text-[10px] text-gray-400">X</Label>
-            <Input
-              type="number"
-              step="0.1"
-              value={transform.position[0].toFixed(2)}
-              onChange={(e) =>
-                handleVectorChange("position", 0, e.target.value)
-              }
-              className="h-7 text-xs bg-black/40 border-white/20 text-white"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-[10px] text-gray-400">Y</Label>
-            <Input
-              type="number"
-              step="0.1"
-              value={transform.position[1].toFixed(2)}
-              onChange={(e) =>
-                handleVectorChange("position", 1, e.target.value)
-              }
-              className="h-7 text-xs bg-black/40 border-white/20 text-white"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-[10px] text-gray-400">Z</Label>
-            <Input
-              type="number"
-              step="0.1"
-              value={transform.position[2].toFixed(2)}
-              onChange={(e) =>
-                handleVectorChange("position", 2, e.target.value)
-              }
-              className="h-7 text-xs bg-black/40 border-white/20 text-white"
-            />
-          </div>
+          {["X", "Y", "Z"].map((axis, index) => (
+            <div key={axis} className="space-y-1">
+              <Label className="text-[10px] text-zinc-500">{axis}</Label>
+              <Input
+                type="number"
+                step="0.1"
+                value={transform.position[index].toFixed(2)}
+                onChange={(e) =>
+                  handleVectorChange("position", index, e.target.value)
+                }
+                className="h-7 text-xs bg-zinc-800/50 border-zinc-700 text-white focus-visible:ring-[#FF5C3D]/50"
+              />
+            </div>
+          ))}
         </div>
       </div>
+
+      <Separator className="bg-zinc-800" />
 
       {/* Rotation */}
       <div className="space-y-2">
@@ -100,63 +81,35 @@ export const TransformTab: React.FC<TransformTabProps> = ({
           <Button
             size="icon"
             variant="ghost"
-            className="h-5 w-5 hover:bg-white/10"
+            className="h-6 w-6 hover:bg-zinc-700"
             onClick={() => resetTransform("rotation")}
           >
-            <RotateCcw className="w-3 h-3 text-gray-400" />
+            <RotateCcw className="w-3 h-3 text-zinc-400" />
           </Button>
         </div>
         <div className="grid grid-cols-3 gap-2">
-          <div className="space-y-1">
-            <Label className="text-[10px] text-gray-400">X (°)</Label>
-            <Input
-              type="number"
-              step="1"
-              value={(transform.rotation[0] * (180 / Math.PI)).toFixed(1)}
-              onChange={(e) =>
-                handleVectorChange(
-                  "rotation",
-                  0,
-                  (parseFloat(e.target.value) * (Math.PI / 180)).toString()
-                )
-              }
-              className="h-7 text-xs bg-black/40 border-white/20 text-white"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-[10px] text-gray-400">Y (°)</Label>
-            <Input
-              type="number"
-              step="1"
-              value={(transform.rotation[1] * (180 / Math.PI)).toFixed(1)}
-              onChange={(e) =>
-                handleVectorChange(
-                  "rotation",
-                  1,
-                  (parseFloat(e.target.value) * (Math.PI / 180)).toString()
-                )
-              }
-              className="h-7 text-xs bg-black/40 border-white/20 text-white"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-[10px] text-gray-400">Z (°)</Label>
-            <Input
-              type="number"
-              step="1"
-              value={(transform.rotation[2] * (180 / Math.PI)).toFixed(1)}
-              onChange={(e) =>
-                handleVectorChange(
-                  "rotation",
-                  2,
-                  (parseFloat(e.target.value) * (Math.PI / 180)).toString()
-                )
-              }
-              className="h-7 text-xs bg-black/40 border-white/20 text-white"
-            />
-          </div>
+          {["X", "Y", "Z"].map((axis, index) => (
+            <div key={axis} className="space-y-1">
+              <Label className="text-[10px] text-zinc-500">{axis} (°)</Label>
+              <Input
+                type="number"
+                step="1"
+                value={(transform.rotation[index] * (180 / Math.PI)).toFixed(1)}
+                onChange={(e) =>
+                  handleVectorChange(
+                    "rotation",
+                    index,
+                    (parseFloat(e.target.value) * (Math.PI / 180)).toString()
+                  )
+                }
+                className="h-7 text-xs bg-zinc-800/50 border-zinc-700 text-white focus-visible:ring-[#FF5C3D]/50"
+              />
+            </div>
+          ))}
         </div>
       </div>
+
+      <Separator className="bg-zinc-800" />
 
       {/* Scale */}
       <div className="space-y-2">
@@ -165,43 +118,25 @@ export const TransformTab: React.FC<TransformTabProps> = ({
           <Button
             size="icon"
             variant="ghost"
-            className="h-5 w-5 hover:bg-white/10"
+            className="h-6 w-6 hover:bg-zinc-700"
             onClick={() => resetTransform("scale")}
           >
-            <RotateCcw className="w-3 h-3 text-gray-400" />
+            <RotateCcw className="w-3 h-3 text-zinc-400" />
           </Button>
         </div>
         <div className="grid grid-cols-3 gap-2">
-          <div className="space-y-1">
-            <Label className="text-[10px] text-gray-400">X</Label>
-            <Input
-              type="number"
-              step="0.1"
-              value={transform.scale[0].toFixed(2)}
-              onChange={(e) => handleVectorChange("scale", 0, e.target.value)}
-              className="h-7 text-xs bg-black/40 border-white/20 text-white"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-[10px] text-gray-400">Y</Label>
-            <Input
-              type="number"
-              step="0.1"
-              value={transform.scale[1].toFixed(2)}
-              onChange={(e) => handleVectorChange("scale", 1, e.target.value)}
-              className="h-7 text-xs bg-black/40 border-white/20 text-white"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-[10px] text-gray-400">Z</Label>
-            <Input
-              type="number"
-              step="0.1"
-              value={transform.scale[2].toFixed(2)}
-              onChange={(e) => handleVectorChange("scale", 2, e.target.value)}
-              className="h-7 text-xs bg-black/40 border-white/20 text-white"
-            />
-          </div>
+          {["X", "Y", "Z"].map((axis, index) => (
+            <div key={axis} className="space-y-1">
+              <Label className="text-[10px] text-zinc-500">{axis}</Label>
+              <Input
+                type="number"
+                step="0.1"
+                value={transform.scale[index].toFixed(2)}
+                onChange={(e) => handleVectorChange("scale", index, e.target.value)}
+                className="h-7 text-xs bg-zinc-800/50 border-zinc-700 text-white focus-visible:ring-[#FF5C3D]/50"
+              />
+            </div>
+          ))}
         </div>
       </div>
     </div>
