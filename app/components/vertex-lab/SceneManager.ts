@@ -1,6 +1,6 @@
 /**
- * Scene Object Management with Hierarchical Support
- * Implements parent-child relationships, local/world transforms, and tree operations
+ * Enhanced Scene Object Management with Hierarchical Support
+ * Implements parent-child relationships, local/world transforms, locking, and tree operations
  */
 
 import * as THREE from "three";
@@ -70,6 +70,7 @@ export interface SceneObject {
     scale: [number, number, number];
   };
   visible: boolean;
+  locked: boolean; // Prevents selection and modification
   // Hierarchical properties
   parentId: string | null;
   childIds: string[];
@@ -286,6 +287,7 @@ export function createSceneObject(
       scale: [1, 1, 1],
     },
     visible: true,
+    locked: false,
     parentId,
     childIds: [],
     expanded: true,
@@ -298,6 +300,8 @@ export type SceneAction =
   | { type: "REMOVE_OBJECT"; id: string }
   | { type: "SELECT_OBJECT"; id: string | null }
   | { type: "UPDATE_OBJECT"; id: string; updates: Partial<SceneObject> }
+  | { type: "RENAME_OBJECT"; id: string; name: string }
+  | { type: "TOGGLE_LOCKED"; id: string }
   | { type: "ADD_DISPLACEMENT"; id: string }
   | { type: "REMOVE_DISPLACEMENT"; id: string }
   | {
@@ -396,6 +400,22 @@ export function sceneReducer(
         ...state,
         objects: state.objects.map((obj) =>
           obj.id === action.id ? { ...obj, ...action.updates } : obj
+        ),
+      };
+
+    case "RENAME_OBJECT":
+      return {
+        ...state,
+        objects: state.objects.map((obj) =>
+          obj.id === action.id ? { ...obj, name: action.name } : obj
+        ),
+      };
+
+    case "TOGGLE_LOCKED":
+      return {
+        ...state,
+        objects: state.objects.map((obj) =>
+          obj.id === action.id ? { ...obj, locked: !obj.locked } : obj
         ),
       };
 

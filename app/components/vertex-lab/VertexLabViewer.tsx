@@ -16,7 +16,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
   TooltipContent,
@@ -113,6 +112,14 @@ export const VertexLabViewer: React.FC = () => {
 
   const handleToggleExpanded = useCallback((id: string) => {
     dispatch({ type: "TOGGLE_EXPANDED", id });
+  }, []);
+
+  const handleToggleLocked = useCallback((id: string) => {
+    dispatch({ type: "TOGGLE_LOCKED", id });
+  }, []);
+
+  const handleRename = useCallback((id: string, name: string) => {
+    dispatch({ type: "RENAME_OBJECT", id, name });
   }, []);
 
   const handleReparent = useCallback(
@@ -215,7 +222,7 @@ export const VertexLabViewer: React.FC = () => {
 
           {/* Center: Transform Tools + Home - Compact */}
           <div className="absolute left-1/2 -translate-x-1/2">
-            {selectedObject && (
+            {selectedObject && !selectedObject.locked && (
               <TooltipProvider>
                 <Card className="bg-zinc-900/80 backdrop-blur-xl border-zinc-800 shadow-2xl p-1">
                   <div className="flex items-center gap-1.5">
@@ -342,6 +349,8 @@ export const VertexLabViewer: React.FC = () => {
             onDuplicate={handleDuplicateObject}
             onToggleVisibility={handleToggleVisibility}
             onToggleExpanded={handleToggleExpanded}
+            onToggleLocked={handleToggleLocked}
+            onRename={handleRename}
             onReparent={handleReparent}
           />
         </div>
