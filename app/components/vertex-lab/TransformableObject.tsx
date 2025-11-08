@@ -294,6 +294,38 @@ export const TransformableObject = React.forwardRef<
 
   if (!visible) return null;
 
+  // Handle GLTF objects separately
+  if (type === "gltf" && object.gltfData) {
+    return (
+      <group
+        ref={groupRef}
+        position={worldTransform.position}
+        rotation={worldTransform.rotation}
+        scale={worldTransform.scale}
+        onClick={handleClick}
+        onPointerOver={(e: ThreeEvent<PointerEvent>) => {
+          e.stopPropagation();
+          document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={() => {
+          document.body.style.cursor = "default";
+        }}
+      >
+        <primitive object={object.gltfData.originalScene.clone()} />
+
+        {/* Render children recursively */}
+        {children.map((child) => (
+          <TransformableObject
+            key={child.id}
+            object={child}
+            allObjects={allObjects}
+            onSelect={onSelect}
+          />
+        ))}
+      </group>
+    );
+  }
+
   return (
     <group
       ref={groupRef}

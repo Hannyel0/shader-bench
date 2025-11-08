@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -33,6 +33,8 @@ import {
   Palette,
   FileCode,
 } from "lucide-react";
+import { GLTFImporter } from "../../utils/GLTFLoader";
+import { createSceneObject, SceneObject } from "./SceneManager";
 
 type ViewMode = "grid" | "list";
 type AssetType = "all" | "texture" | "model" | "material" | "shader";
@@ -49,15 +51,21 @@ interface AssetNode {
   thumbnail?: string;
 }
 
-interface AssetsPanelProps {}
+interface AssetsPanelProps {
+  onAddObject?: (object: SceneObject) => void;
+}
 
-export const AssetsPanel: React.FC<AssetsPanelProps> = () => {
+export const AssetsPanel: React.FC<AssetsPanelProps> = ({ onAddObject }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [filterType, setFilterType] = useState<AssetType>("all");
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
     new Set(["textures", "models", "materials"])
   );
+  const [isLoading, setIsLoading] = useState(false);
+
+  const gltfImporter = useRef(new GLTFImporter());
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Mock hierarchical data
   const mockAssets: AssetNode[] = [
@@ -229,6 +237,87 @@ export const AssetsPanel: React.FC<AssetsPanelProps> = () => {
     });
   };
 
+  // Handle file import from file input
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsLoading(true);
+
+    for (const file of Array.from(files)) {
+      if (file.name.endsWith('.gltf') || file.name.endsWith('.glb')) {
+        try {
+          const gltfData = await gltfImporter.current.loadFromFile(file);
+
+          // Create scene object with GLTF data
+          const object = createSceneObject('gltf', [0, 0, 0]);
+          object.gltfData = gltfData;
+          object.name = file.name.replace(/\.(gltf|glb)$/, '');
+
+          // Notify parent component
+          if (onAddObject) {
+            onAddObject(object);
+          }
+
+          console.log(`Model imported successfully: ${file.name}`);
+        } catch (error) {
+          console.error('Failed to load GLTF:', error);
+          alert(`Failed to load ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      } else {
+        alert(`${file.name} is not a supported GLTF/GLB file`);
+      }
+    }
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
+    setIsLoading(false);
+  };
+
+  // Handle drag and drop
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const handleDrop = async (event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const files = Array.from(event.dataTransfer.files);
+    if (files.length === 0) return;
+
+    setIsLoading(true);
+
+    for (const file of files) {
+      if (file.name.endsWith('.gltf') || file.name.endsWith('.glb')) {
+        try {
+          const gltfData = await gltfImporter.current.loadFromFile(file);
+
+          // Create scene object with GLTF data
+          const object = createSceneObject('gltf', [0, 0, 0]);
+          object.gltfData = gltfData;
+          object.name = file.name.replace(/\.(gltf|glb)$/, '');
+
+          // Notify parent component
+          if (onAddObject) {
+            onAddObject(object);
+          }
+
+          console.log(`Model imported successfully: ${file.name}`);
+        } catch (error) {
+          console.error('Failed to load GLTF:', error);
+          alert(`Failed to load ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+    }
+
+    setIsLoading(false);
+  };
+
   const getAssetIcon = (type: AssetNode["type"]) => {
     switch (type) {
       case "folder":
@@ -392,7 +481,21 @@ export const AssetsPanel: React.FC<AssetsPanelProps> = () => {
   }, [assetTree, filteredTree]);
 
   return (
-    <div className="w-full h-full flex flex-col bg-zinc-900/50 rounded-lg border border-zinc-800">
+    <div
+      className="w-full h-full flex flex-col bg-zinc-900/50 rounded-lg border border-zinc-800"
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".gltf,.glb"
+        multiple
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+
       {/* Header */}
       <div className="flex-shrink-0 p-3 border-b border-zinc-800">
         <div className="flex items-center justify-between mb-3">
@@ -434,9 +537,14 @@ export const AssetsPanel: React.FC<AssetsPanelProps> = () => {
               </Button>
             </div>
 
-            <Button size="sm" className="h-6 px-2 text-[10px] bg-[#FF5C3D] hover:bg-[#FF5C3D]/90 text-white">
+            <Button
+              size="sm"
+              className="h-6 px-2 text-[10px] bg-[#FF5C3D] hover:bg-[#FF5C3D]/90 text-white"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading}
+            >
               <Upload className="w-3 h-3 mr-1" />
-              Import
+              {isLoading ? "Loading..." : "Import GLTF"}
             </Button>
           </div>
         </div>

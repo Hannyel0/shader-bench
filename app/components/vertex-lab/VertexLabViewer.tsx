@@ -410,7 +410,7 @@ export const VertexLabViewer: React.FC = () => {
               <Card className="h-full bg-zinc-900/80 backdrop-blur-xl border-zinc-800 shadow-2xl overflow-hidden">
                 <div className="h-full p-3">
                   {/* Assets Panel */}
-                  <AssetsPanel />
+                  <AssetsPanel onAddObject={handleAddObject} />
                 </div>
               </Card>
             </div>

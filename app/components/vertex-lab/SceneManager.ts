@@ -5,7 +5,17 @@
 
 import * as THREE from "three";
 
-export type GeometryType = "sphere" | "plane" | "box" | "torus" | "cylinder";
+export type GeometryType = "sphere" | "plane" | "box" | "torus" | "cylinder" | "gltf";
+
+// GLTF-specific data structure
+export interface GLTFData {
+  url: string;
+  originalScene: THREE.Group;  // Store the loaded scene
+  meshes: THREE.Mesh[];        // Flattened mesh references
+  materials: THREE.Material[]; // Original materials
+  animations?: THREE.AnimationClip[];
+  boundingBox?: THREE.Box3;
+}
 
 export interface VertexParams {
   noiseType:
@@ -75,6 +85,8 @@ export interface SceneObject {
   parentId: string | null;
   childIds: string[];
   expanded: boolean; // For UI tree view
+  // GLTF-specific data
+  gltfData?: GLTFData;
 }
 
 export interface SceneState {

@@ -133,6 +133,41 @@ export const ObjectPropertiesPanel: React.FC<ObjectPropertiesPanelProps> = ({
 
           <Separator className="bg-zinc-800" />
 
+          {/* GLTF Info Section */}
+          {object.type === "gltf" && object.gltfData && (
+            <>
+              <Collapsible open={true}>
+                <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-zinc-800/30">
+                  <Box className="w-3.5 h-3.5 text-[#FF5C3D]" />
+                  <span className="text-xs font-semibold text-white">GLTF Model</span>
+                </div>
+                <div className="px-3 py-2 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-zinc-400">Meshes</span>
+                    <span className="text-[10px] text-white font-mono">
+                      {object.gltfData.meshes.length}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-zinc-400">Materials</span>
+                    <span className="text-[10px] text-white font-mono">
+                      {object.gltfData.materials.length}
+                    </span>
+                  </div>
+                  {object.gltfData.animations && object.gltfData.animations.length > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-zinc-400">Animations</span>
+                      <span className="text-[10px] text-white font-mono">
+                        {object.gltfData.animations.length}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </Collapsible>
+              <Separator className="bg-zinc-800" />
+            </>
+          )}
+
           {/* Displacement Section */}
           {object.displacement && (
             <>
@@ -195,7 +230,7 @@ export const ObjectPropertiesPanel: React.FC<ObjectPropertiesPanelProps> = ({
                 className="bg-zinc-900 border-zinc-800 backdrop-blur-xl"
                 align="start"
               >
-                {!object.displacement && (
+                {!object.displacement && object.type !== "gltf" && (
                   <DropdownMenuItem
                     className="text-white hover:bg-zinc-800 text-xs cursor-pointer"
                     onClick={() => onAddDisplacement?.(object.id)}
