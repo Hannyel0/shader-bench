@@ -105,6 +105,58 @@ const PerformanceMonitor: React.FC<{
   return null;
 };
 
+const SelectionOutline: React.FC<{
+  selectedId: string | null;
+  objects: SceneObject[];
+  meshRefsMap: React.MutableRefObject<Map<string, THREE.Group>>;
+}> = ({ selectedId, objects, meshRefsMap }) => {
+  const boxRef = useRef<THREE.Box3>(new THREE.Box3());
+  const helperRef = useRef<THREE.Box3Helper | null>(null);
+
+  useEffect(() => {
+    if (!selectedId) {
+      if (helperRef.current) {
+        helperRef.current.visible = false;
+      }
+      return;
+    }
+
+    const targetGroup = meshRefsMap.current.get(selectedId);
+    if (!targetGroup) return;
+
+    // Create helper on first selection
+    if (!helperRef.current) {
+      helperRef.current = new THREE.Box3Helper(boxRef.current, 0xffff00);
+      const material = helperRef.current.material as THREE.LineBasicMaterial;
+      material.depthTest = false;
+      material.transparent = true;
+      material.opacity = 0.8;
+    }
+
+    // Compute bounding box from the GROUP (includes all children)
+    boxRef.current.setFromObject(targetGroup, true);
+
+    if (!boxRef.current.isEmpty()) {
+      helperRef.current.visible = true;
+      helperRef.current.box = boxRef.current; // Update helper reference
+    } else {
+      helperRef.current.visible = false;
+    }
+  }, [selectedId, objects, meshRefsMap]);
+
+  // Update bounding box every frame (for animations/transforms)
+  useFrame(() => {
+    if (!selectedId || !helperRef.current || !helperRef.current.visible) return;
+
+    const targetGroup = meshRefsMap.current.get(selectedId);
+    if (!targetGroup) return;
+
+    boxRef.current.setFromObject(targetGroup, true);
+  });
+
+  return helperRef.current ? <primitive object={helperRef.current} /> : null;
+};
+
 export const MultiObjectCanvas: React.FC<MultiObjectCanvasProps> = ({
   objects,
   selectedId,
@@ -192,11 +244,17 @@ export const MultiObjectCanvas: React.FC<MultiObjectCanvasProps> = ({
             ref={(mesh) => setMeshRef(obj.id, mesh)}
             object={obj}
             allObjects={objects}
-            isSelected={selectedId === obj.id}
             onSelect={onSelect}
             onTransformChange={onTransformChange}
           />
         ))}
+
+      {/* Selection outline using Box3Helper */}
+      <SelectionOutline
+        selectedId={selectedId}
+        objects={objects}
+        meshRefsMap={meshRefsMap}
+      />
 
       {/* Transform controls with direct mesh reference */}
       {selectedObject && (

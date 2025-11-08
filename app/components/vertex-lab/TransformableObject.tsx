@@ -21,7 +21,6 @@ import {
 interface TransformableObjectProps {
   object: SceneObject;
   allObjects: SceneObject[];
-  isSelected: boolean;
   onSelect: (id: string) => void;
   onTransformChange?: (
     id: string,
@@ -32,7 +31,7 @@ interface TransformableObjectProps {
 export const TransformableObject = React.forwardRef<
   THREE.Group,
   TransformableObjectProps
->(({ object, allObjects, isSelected, onSelect }, forwardedRef) => {
+>(({ object, allObjects, onSelect }, forwardedRef) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const groupRef = useRef<THREE.Group>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
@@ -302,22 +301,6 @@ export const TransformableObject = React.forwardRef<
       rotation={worldTransform.rotation}
       scale={worldTransform.scale}
     >
-      {/* Selection Outline - Rendered first (behind) */}
-      {isSelected && (
-        <mesh
-          geometry={geometry}
-          scale={1.01}
-          renderOrder={-1}
-        >
-          <meshBasicMaterial
-            color="#ffff00"
-            side={THREE.BackSide}
-            transparent
-            opacity={0.5}
-          />
-        </mesh>
-      )}
-
       {/* Main mesh */}
       <mesh
         ref={meshRef}
@@ -362,7 +345,6 @@ export const TransformableObject = React.forwardRef<
           key={child.id}
           object={child}
           allObjects={allObjects}
-          isSelected={child.id === object.id}
           onSelect={onSelect}
         />
       ))}
