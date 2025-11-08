@@ -189,6 +189,10 @@ export const MultiObjectCanvas: React.FC<MultiObjectCanvasProps> = ({
       onCreated={({ gl }) => {
         gl.setClearColor(0x0a0a0a, 1);
       }}
+      onPointerMissed={() => {
+        // Deselect when clicking on empty space
+        onSelect(null);
+      }}
     >
       <PerspectiveCamera makeDefault position={[0, 2, 5]} fov={50} />
       <OrbitControls
@@ -222,18 +226,6 @@ export const MultiObjectCanvas: React.FC<MultiObjectCanvasProps> = ({
         infiniteGrid={false}
         position={[0, -1.5, 0]}
       />
-
-      {/* Background plane for "empty space" click detection */}
-      <mesh
-        position={[0, 0, -10]}
-        onClick={(e) => {
-          e.stopPropagation();
-          onSelect(null);
-        }}
-      >
-        <planeGeometry args={[1000, 1000]} />
-        <meshBasicMaterial transparent opacity={0} />
-      </mesh>
 
       {/* Render all scene objects with ref tracking */}
       {objects
