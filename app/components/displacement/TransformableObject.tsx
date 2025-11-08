@@ -17,15 +17,16 @@ interface TransformableObjectProps {
 }
 
 export const TransformableObject = React.forwardRef<
-  THREE.Mesh,
+  THREE.Group,
   TransformableObjectProps
 >(({ object, isSelected, onSelect }, forwardedRef) => {
   const meshRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   const standardMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
 
-  // Expose mesh ref to parent for transform controls
-  useImperativeHandle(forwardedRef, () => meshRef.current!);
+  // Expose GROUP ref to parent for transform controls (not mesh ref)
+  useImperativeHandle(forwardedRef, () => groupRef.current!);
 
   const { displacement, transform, type, visible } = object;
   const hasDisplacement = !!displacement;
@@ -285,6 +286,7 @@ export const TransformableObject = React.forwardRef<
 
   return (
     <group
+      ref={groupRef}
       position={transform.position}
       rotation={transform.rotation}
       scale={transform.scale}

@@ -115,10 +115,10 @@ export const MultiObjectCanvas: React.FC<MultiObjectCanvasProps> = ({
 }) => {
   const selectedObject = objects.find((obj) => obj.id === selectedId) || null;
 
-  // Track mesh references for each object
-  const meshRefsMap = useRef<Map<string, THREE.Mesh>>(new Map());
+  // Track GROUP references for each object (not mesh - groups have the transform properties)
+  const meshRefsMap = useRef<Map<string, THREE.Group>>(new Map());
 
-  const setMeshRef = useCallback((id: string, mesh: THREE.Mesh | null) => {
+  const setMeshRef = useCallback((id: string, mesh: THREE.Group | null) => {
     if (mesh) {
       meshRefsMap.current.set(id, mesh);
     } else {

@@ -7,7 +7,7 @@ import * as THREE from "three";
 import { SceneObject } from "./SceneManager";
 
 interface ObjectTransformControlsProps {
-  targetMesh: THREE.Mesh | null;
+  targetMesh: THREE.Group | null;
   object: SceneObject | null;
   mode: "translate" | "rotate" | "scale";
   onTransformChange: (
@@ -25,17 +25,16 @@ export const ObjectTransformControls: React.FC<ObjectTransformControlsProps> = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controlsRef = useRef<any>(null);
   const { gl } = useThree();
-  
-  // Track if we're actively dragging to prevent state thrashing
+
+  // Track if we're actively dragging
   const isDraggingRef = useRef(false);
-  const lastUpdateTimeRef = useRef(0);
 
   useEffect(() => {
     if (!controlsRef.current || !object || !targetMesh) return;
 
     const controls = controlsRef.current;
-    
-    // Attach controls to the actual mesh
+
+    // Attach controls to the GROUP (not mesh) - this is where state-driven transforms are applied
     controls.attach(targetMesh);
 
     // Allow clicks to pass through to mesh when controls are active
@@ -43,56 +42,50 @@ export const ObjectTransformControls: React.FC<ObjectTransformControlsProps> = (
       controls.getRaycaster = () => null; // Disable controls raycasting for selection
     }
 
-    // Handle drag start
-    const onDragStart = () => {
-      isDraggingRef.current = true;
-      gl.domElement.style.cursor = "grabbing";
-    };
-
-    // Handle continuous transform changes during drag
-    const onObjectChange = () => {
-      if (!isDraggingRef.current || !targetMesh) return;
-
-      // Throttle updates to avoid state thrashing (update every 16ms = ~60fps)
-      const now = performance.now();
-      if (now - lastUpdateTimeRef.current < 16) return;
-      lastUpdateTimeRef.current = now;
-
-      // Read current transform from the mesh (which TransformControls is manipulating)
-      const updates: Partial<SceneObject["transform"]> = {};
-
-      if (mode === "translate") {
-        const pos = targetMesh.position;
-        updates.position = [pos.x, pos.y, pos.z];
-      } else if (mode === "rotate") {
-        const rot = targetMesh.rotation;
-        updates.rotation = [rot.x, rot.y, rot.z];
-      } else if (mode === "scale") {
-        const scale = targetMesh.scale;
-        updates.scale = [scale.x, scale.y, scale.z];
-      }
-
-      // Update state in real-time
-      onTransformChange(object.id, updates);
-    };
-
-    // Handle drag end
-    const onDragEnd = (event: any) => {
-      if (!event.value) {
+    // Handle drag start and end via dragging-changed event
+    const onDraggingChanged = (event: any) => {
+      if (event.value) {
+        // Dragging STARTED
+        isDraggingRef.current = true;
+        gl.domElement.style.cursor = "grabbing";
+      } else {
+        // Dragging ENDED - Capture final transform and update state
         isDraggingRef.current = false;
         gl.domElement.style.cursor = "default";
-        
-        // Final update on drag end
-        onObjectChange();
+
+        // Read final transform from the GROUP after drag completes
+        if (targetMesh && object) {
+          const updates: Partial<SceneObject["transform"]> = {};
+
+          if (mode === "translate") {
+            const pos = targetMesh.position;
+            updates.position = [pos.x, pos.y, pos.z];
+          } else if (mode === "rotate") {
+            const rot = targetMesh.rotation;
+            updates.rotation = [rot.x, rot.y, rot.z];
+          } else if (mode === "scale") {
+            const scale = targetMesh.scale;
+            updates.scale = [scale.x, scale.y, scale.z];
+          }
+
+          // Single state update on drag completion (avoids fighting with TransformControls)
+          onTransformChange(object.id, updates);
+        }
       }
+    };
+
+    // During drag: Let TransformControls work imperatively without state updates
+    const onObjectChange = () => {
+      // Do NOT update state during drag - this would cause React to fight TransformControls
+      // State will only be updated when drag ends (in onDraggingChanged)
     };
 
     // Subscribe to events
-    controls.addEventListener("dragging-changed", onDragEnd);
+    controls.addEventListener("dragging-changed", onDraggingChanged);
     controls.addEventListener("objectChange", onObjectChange);
 
     return () => {
-      controls.removeEventListener("dragging-changed", onDragEnd);
+      controls.removeEventListener("dragging-changed", onDraggingChanged);
       controls.removeEventListener("objectChange", onObjectChange);
       controls.detach();
     };
