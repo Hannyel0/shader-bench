@@ -184,16 +184,19 @@ export const MultiObjectCanvas: React.FC<MultiObjectCanvasProps> = ({
       </mesh>
 
       {/* Render all scene objects with ref tracking */}
-      {objects.map((obj) => (
-        <TransformableObject
-          key={obj.id}
-          ref={(mesh) => setMeshRef(obj.id, mesh)}
-          object={obj}
-          isSelected={selectedId === obj.id}
-          onSelect={onSelect}
-          onTransformChange={onTransformChange}
-        />
-      ))}
+      {objects
+        .filter((obj) => !obj.parentId)
+        .map((obj) => (
+          <TransformableObject
+            key={obj.id}
+            ref={(mesh) => setMeshRef(obj.id, mesh)}
+            object={obj}
+            allObjects={objects}
+            isSelected={selectedId === obj.id}
+            onSelect={onSelect}
+            onTransformChange={onTransformChange}
+          />
+        ))}
 
       {/* Transform controls with direct mesh reference */}
       {selectedObject && (

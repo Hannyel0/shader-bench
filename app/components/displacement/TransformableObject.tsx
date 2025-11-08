@@ -1,13 +1,26 @@
 "use client";
 
-import React, { useRef, useMemo, useCallback, useImperativeHandle } from "react";
+import React, {
+  useRef,
+  useMemo,
+  useCallback,
+  useImperativeHandle,
+  useEffect,
+} from "react";
 import { useFrame, ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import { NoiseLibrary, NoiseType } from "../../utils/Noiselibrary";
-import { SceneObject, GeometryType, geometryCache } from "./SceneManager";
+import {
+  SceneObject,
+  GeometryType,
+  geometryCache,
+  getObjectById,
+  getWorldTransform,
+} from "./SceneManager";
 
 interface TransformableObjectProps {
   object: SceneObject;
+  allObjects: SceneObject[];
   isSelected: boolean;
   onSelect: (id: string) => void;
   onTransformChange?: (
@@ -19,19 +32,29 @@ interface TransformableObjectProps {
 export const TransformableObject = React.forwardRef<
   THREE.Group,
   TransformableObjectProps
->(({ object, isSelected, onSelect }, forwardedRef) => {
+>(({ object, allObjects, isSelected, onSelect }, forwardedRef) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const groupRef = useRef<THREE.Group>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   const standardMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
 
-  // Expose GROUP ref to parent for transform controls (not mesh ref)
+  // Expose GROUP ref to parent for transform controls
   useImperativeHandle(forwardedRef, () => groupRef.current!);
 
-  const { displacement, transform, type, visible } = object;
+  const { displacement, transform, type, visible, parentId } = object;
   const hasDisplacement = !!displacement;
 
-  // Generate vertex shader based on noise type (only if displacement exists)
+  // Calculate world transform for rendering
+  const worldTransform = useMemo(() => {
+    if (!parentId) {
+      return transform;
+    }
+    // In production, you'd use THREE.Matrix4 for proper hierarchical transforms
+    // For now, we apply local transforms and let Three.js handle the hierarchy
+    return transform;
+  }, [transform, parentId, allObjects]);
+
+  // Generate vertex shader based on noise type
   const vertexShader = useMemo(() => {
     if (!hasDisplacement || !displacement) return null;
 
@@ -102,10 +125,9 @@ export const TransformableObject = React.forwardRef<
     `;
   }, [hasDisplacement, displacement?.noiseType]);
 
-  // Fragment shader with selection highlight (only if displacement exists)
+  // Fragment shader with selection highlight
   const fragmentShader = useMemo(() => {
     if (!hasDisplacement) return null;
-
 
     return `
       uniform vec3 uColor;
@@ -163,7 +185,7 @@ export const TransformableObject = React.forwardRef<
           finalColor = uColor;
         }
 
-        // Add selection highlight (subtle emission)
+        // Add selection highlight
         if(uSelected) {
           finalColor = mix(finalColor, vec3(0.3, 0.6, 1.0), 0.2);
         }
@@ -173,7 +195,7 @@ export const TransformableObject = React.forwardRef<
     `;
   }, [hasDisplacement]);
 
-  // Create shader uniforms (only if displacement exists)
+  // Create shader uniforms
   const uniforms = useMemo(() => {
     if (!hasDisplacement || !displacement) return null;
 
@@ -204,7 +226,7 @@ export const TransformableObject = React.forwardRef<
     };
   }, [hasDisplacement, object.id]);
 
-  // Update uniforms efficiently (no recreation) - only for displacement shaders
+  // Update uniforms efficiently
   React.useEffect(() => {
     if (materialRef.current && hasDisplacement && displacement) {
       const mat = materialRef.current;
@@ -232,7 +254,7 @@ export const TransformableObject = React.forwardRef<
     }
   }, [hasDisplacement, displacement, object.material, isSelected]);
 
-  // Update standard material when not using displacement
+  // Update standard material
   React.useEffect(() => {
     if (standardMaterialRef.current && !hasDisplacement) {
       const mat = standardMaterialRef.current;
@@ -242,7 +264,7 @@ export const TransformableObject = React.forwardRef<
       mat.opacity = object.material.opacity;
       mat.emissiveIntensity = object.material.emissiveIntensity;
       mat.transparent = object.material.opacity < 1;
-      // Add selection highlight via emissive
+
       if (isSelected) {
         mat.emissive.setHex(0x4a9eff);
         mat.emissiveIntensity = 0.3;
@@ -253,7 +275,7 @@ export const TransformableObject = React.forwardRef<
     }
   }, [hasDisplacement, object.material, isSelected]);
 
-  // Animate shader time (only for displacement)
+  // Animate shader time
   useFrame((state) => {
     if (materialRef.current && hasDisplacement) {
       materialRef.current.uniforms.uTime.value = state.clock.elapsedTime;
@@ -271,7 +293,7 @@ export const TransformableObject = React.forwardRef<
 
   // Get or create cached geometry
   const geometry = useMemo(() => {
-    const subdivisions = displacement?.subdivisions || 32; // Fallback for non-displaced objects
+    const subdivisions = displacement?.subdivisions || 32;
     let geo = geometryCache.get(type, subdivisions);
 
     if (!geo) {
@@ -282,14 +304,19 @@ export const TransformableObject = React.forwardRef<
     return geo;
   }, [type, displacement?.subdivisions]);
 
+  // Render children recursively
+  const children = useMemo(() => {
+    return allObjects.filter((obj) => obj.parentId === object.id);
+  }, [allObjects, object.id]);
+
   if (!visible) return null;
 
   return (
     <group
       ref={groupRef}
-      position={transform.position}
-      rotation={transform.rotation}
-      scale={transform.scale}
+      position={worldTransform.position}
+      rotation={worldTransform.rotation}
+      scale={worldTransform.scale}
     >
       <mesh
         ref={meshRef}
@@ -326,6 +353,17 @@ export const TransformableObject = React.forwardRef<
           />
         )}
       </mesh>
+
+      {/* Render children recursively */}
+      {children.map((child) => (
+        <TransformableObject
+          key={child.id}
+          object={child}
+          allObjects={allObjects}
+          isSelected={child.id === object.id}
+          onSelect={onSelect}
+        />
+      ))}
     </group>
   );
 });

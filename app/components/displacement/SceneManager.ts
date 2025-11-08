@@ -1,6 +1,6 @@
 /**
- * Scene Object Management
- * Handles multi-object state, selection, and CRUD operations
+ * Scene Object Management with Hierarchical Support
+ * Implements parent-child relationships, local/world transforms, and tree operations
  */
 
 import * as THREE from "three";
@@ -8,7 +8,18 @@ import * as THREE from "three";
 export type GeometryType = "sphere" | "plane" | "box" | "torus" | "cylinder";
 
 export interface DisplacementParams {
-  noiseType: "perlin" | "simplex" | "voronoi" | "voronoiF2" | "voronoiF2MinusF1" | "fbmPerlin" | "fbmSimplex" | "turbulence" | "ridge" | "domainWarp" | "cellular";
+  noiseType:
+    | "perlin"
+    | "simplex"
+    | "voronoi"
+    | "voronoiF2"
+    | "voronoiF2MinusF1"
+    | "fbmPerlin"
+    | "fbmSimplex"
+    | "turbulence"
+    | "ridge"
+    | "domainWarp"
+    | "cellular";
   amplitude: number;
   frequency: number;
   octaves: number;
@@ -51,7 +62,7 @@ export interface SceneObject {
   id: string;
   name: string;
   type: GeometryType;
-  displacement?: DisplacementParams; // Optional - objects can exist without displacement
+  displacement?: DisplacementParams;
   material: MaterialProperties;
   transform: {
     position: [number, number, number];
@@ -59,6 +70,10 @@ export interface SceneObject {
     scale: [number, number, number];
   };
   visible: boolean;
+  // Hierarchical properties
+  parentId: string | null;
+  childIds: string[];
+  expanded: boolean; // For UI tree view
 }
 
 export interface SceneState {
@@ -66,7 +81,7 @@ export interface SceneState {
   selectedId: string | null;
 }
 
-// Geometry cache for performance - reuse geometries with same subdivisions
+// Geometry cache for performance
 class GeometryCache {
   private cache = new Map<string, THREE.BufferGeometry>();
 
@@ -96,12 +111,132 @@ class GeometryCache {
 
 export const geometryCache = new GeometryCache();
 
-// Generate unique IDs for objects
+// Hierarchical utility functions
+export function getObjectById(
+  objects: SceneObject[],
+  id: string
+): SceneObject | null {
+  return objects.find((obj) => obj.id === id) || null;
+}
+
+export function getChildren(
+  objects: SceneObject[],
+  parentId: string
+): SceneObject[] {
+  return objects.filter((obj) => obj.parentId === parentId);
+}
+
+export function getRootObjects(objects: SceneObject[]): SceneObject[] {
+  return objects.filter((obj) => obj.parentId === null);
+}
+
+export function getAllDescendants(
+  objects: SceneObject[],
+  parentId: string
+): SceneObject[] {
+  const descendants: SceneObject[] = [];
+  const children = getChildren(objects, parentId);
+
+  for (const child of children) {
+    descendants.push(child);
+    descendants.push(...getAllDescendants(objects, child.id));
+  }
+
+  return descendants;
+}
+
+export function getAncestors(
+  objects: SceneObject[],
+  objectId: string
+): SceneObject[] {
+  const ancestors: SceneObject[] = [];
+  let current = getObjectById(objects, objectId);
+
+  while (current && current.parentId) {
+    const parent = getObjectById(objects, current.parentId);
+    if (parent) {
+      ancestors.push(parent);
+      current = parent;
+    } else {
+      break;
+    }
+  }
+
+  return ancestors;
+}
+
+export function canReparent(
+  objects: SceneObject[],
+  childId: string,
+  newParentId: string | null
+): boolean {
+  if (childId === newParentId) return false;
+  if (!newParentId) return true;
+
+  // Prevent circular dependencies - check if newParent is a descendant of child
+  const descendants = getAllDescendants(objects, childId);
+  return !descendants.some((desc) => desc.id === newParentId);
+}
+
+export function getDepth(objects: SceneObject[], objectId: string): number {
+  const ancestors = getAncestors(objects, objectId);
+  return ancestors.length;
+}
+
+// Transform calculation utilities
+export function getWorldTransform(
+  objects: SceneObject[],
+  objectId: string
+): {
+  position: [number, number, number];
+  rotation: [number, number, number];
+  scale: [number, number, number];
+} {
+  const obj = getObjectById(objects, objectId);
+  if (!obj) {
+    return { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] };
+  }
+
+  if (!obj.parentId) {
+    return { ...obj.transform };
+  }
+
+  const parentWorld = getWorldTransform(objects, obj.parentId);
+
+  // Calculate world position (simplified - real implementation would use matrices)
+  const worldPosition: [number, number, number] = [
+    parentWorld.position[0] + obj.transform.position[0],
+    parentWorld.position[1] + obj.transform.position[1],
+    parentWorld.position[2] + obj.transform.position[2],
+  ];
+
+  // Calculate world rotation
+  const worldRotation: [number, number, number] = [
+    parentWorld.rotation[0] + obj.transform.rotation[0],
+    parentWorld.rotation[1] + obj.transform.rotation[1],
+    parentWorld.rotation[2] + obj.transform.rotation[2],
+  ];
+
+  // Calculate world scale
+  const worldScale: [number, number, number] = [
+    parentWorld.scale[0] * obj.transform.scale[0],
+    parentWorld.scale[1] * obj.transform.scale[1],
+    parentWorld.scale[2] * obj.transform.scale[2],
+  ];
+
+  return {
+    position: worldPosition,
+    rotation: worldRotation,
+    scale: worldScale,
+  };
+}
+
+// Generate unique IDs
 export function generateObjectId(): string {
   return `object-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
-// Create default material properties for new objects
+// Create default material properties
 export function createDefaultMaterial(): MaterialProperties {
   return {
     color: "#4a9eff",
@@ -112,7 +247,7 @@ export function createDefaultMaterial(): MaterialProperties {
   };
 }
 
-// Create default displacement params for new objects
+// Create default displacement params
 export function createDefaultDisplacementParams(): DisplacementParams {
   return {
     noiseType: "perlin",
@@ -135,7 +270,8 @@ export function createDefaultDisplacementParams(): DisplacementParams {
 // Factory function for creating new scene objects
 export function createSceneObject(
   type: GeometryType,
-  position: [number, number, number] = [0, 0, 0]
+  position: [number, number, number] = [0, 0, 0],
+  parentId: string | null = null
 ): SceneObject {
   return {
     id: generateObjectId(),
@@ -143,7 +279,6 @@ export function createSceneObject(
       Date.now() % 1000
     }`,
     type,
-    // displacement is omitted - objects start without it (ECS pattern)
     material: createDefaultMaterial(),
     transform: {
       position,
@@ -151,6 +286,9 @@ export function createSceneObject(
       scale: [1, 1, 1],
     },
     visible: true,
+    parentId,
+    childIds: [],
+    expanded: true,
   };
 }
 
@@ -179,6 +317,8 @@ export type SceneAction =
     }
   | { type: "DUPLICATE_OBJECT"; id: string }
   | { type: "TOGGLE_VISIBILITY"; id: string }
+  | { type: "TOGGLE_EXPANDED"; id: string }
+  | { type: "REPARENT_OBJECT"; childId: string; newParentId: string | null }
   | { type: "CLEAR_SCENE" };
 
 // Scene state reducer
@@ -187,20 +327,63 @@ export function sceneReducer(
   action: SceneAction
 ): SceneState {
   switch (action.type) {
-    case "ADD_OBJECT":
+    case "ADD_OBJECT": {
+      const newObjects = [...state.objects, action.object];
+
+      // Update parent's childIds if object has a parent
+      if (action.object.parentId) {
+        const parentIndex = newObjects.findIndex(
+          (obj) => obj.id === action.object.parentId
+        );
+        if (parentIndex !== -1) {
+          newObjects[parentIndex] = {
+            ...newObjects[parentIndex],
+            childIds: [...newObjects[parentIndex].childIds, action.object.id],
+          };
+        }
+      }
+
       return {
         ...state,
-        objects: [...state.objects, action.object],
-        // Don't auto-select newly added objects
+        objects: newObjects,
         selectedId: state.selectedId,
       };
+    }
 
-    case "REMOVE_OBJECT":
+    case "REMOVE_OBJECT": {
+      const objectToRemove = getObjectById(state.objects, action.id);
+      if (!objectToRemove) return state;
+
+      // Get all descendants that need to be removed
+      const descendants = getAllDescendants(state.objects, action.id);
+      const idsToRemove = new Set([action.id, ...descendants.map((d) => d.id)]);
+
+      // Remove object and descendants
+      let newObjects = state.objects.filter((obj) => !idsToRemove.has(obj.id));
+
+      // Update parent's childIds
+      if (objectToRemove.parentId) {
+        const parentIndex = newObjects.findIndex(
+          (obj) => obj.id === objectToRemove.parentId
+        );
+        if (parentIndex !== -1) {
+          newObjects[parentIndex] = {
+            ...newObjects[parentIndex],
+            childIds: newObjects[parentIndex].childIds.filter(
+              (id) => id !== action.id
+            ),
+          };
+        }
+      }
+
       return {
         ...state,
-        objects: state.objects.filter((obj) => obj.id !== action.id),
-        selectedId: state.selectedId === action.id ? null : state.selectedId,
+        objects: newObjects,
+        selectedId: idsToRemove.has(state.selectedId!)
+          ? null
+          : state.selectedId,
       };
+    }
 
     case "SELECT_OBJECT":
       return {
@@ -285,6 +468,7 @@ export function sceneReducer(
         ...objToDuplicate,
         id: generateObjectId(),
         name: `${objToDuplicate.name} Copy`,
+        childIds: [], // Don't duplicate children (can be enhanced later)
         transform: {
           ...objToDuplicate.transform,
           position: [
@@ -295,10 +479,24 @@ export function sceneReducer(
         },
       };
 
+      let newObjects = [...state.objects, duplicated];
+
+      // Update parent's childIds if duplicated object has a parent
+      if (duplicated.parentId) {
+        const parentIndex = newObjects.findIndex(
+          (obj) => obj.id === duplicated.parentId
+        );
+        if (parentIndex !== -1) {
+          newObjects[parentIndex] = {
+            ...newObjects[parentIndex],
+            childIds: [...newObjects[parentIndex].childIds, duplicated.id],
+          };
+        }
+      }
+
       return {
         ...state,
-        objects: [...state.objects, duplicated],
-        // Don't auto-select duplicated objects
+        objects: newObjects,
         selectedId: state.selectedId,
       };
     }
@@ -310,6 +508,70 @@ export function sceneReducer(
           obj.id === action.id ? { ...obj, visible: !obj.visible } : obj
         ),
       };
+
+    case "TOGGLE_EXPANDED":
+      return {
+        ...state,
+        objects: state.objects.map((obj) =>
+          obj.id === action.id ? { ...obj, expanded: !obj.expanded } : obj
+        ),
+      };
+
+    case "REPARENT_OBJECT": {
+      if (!canReparent(state.objects, action.childId, action.newParentId)) {
+        return state;
+      }
+
+      const childObj = getObjectById(state.objects, action.childId);
+      if (!childObj) return state;
+
+      let newObjects = [...state.objects];
+
+      // Remove from old parent's childIds
+      if (childObj.parentId) {
+        const oldParentIndex = newObjects.findIndex(
+          (obj) => obj.id === childObj.parentId
+        );
+        if (oldParentIndex !== -1) {
+          newObjects[oldParentIndex] = {
+            ...newObjects[oldParentIndex],
+            childIds: newObjects[oldParentIndex].childIds.filter(
+              (id) => id !== action.childId
+            ),
+          };
+        }
+      }
+
+      // Add to new parent's childIds
+      if (action.newParentId) {
+        const newParentIndex = newObjects.findIndex(
+          (obj) => obj.id === action.newParentId
+        );
+        if (newParentIndex !== -1) {
+          newObjects[newParentIndex] = {
+            ...newObjects[newParentIndex],
+            childIds: [...newObjects[newParentIndex].childIds, action.childId],
+            expanded: true, // Auto-expand parent to show new child
+          };
+        }
+      }
+
+      // Update child's parentId
+      const childIndex = newObjects.findIndex(
+        (obj) => obj.id === action.childId
+      );
+      if (childIndex !== -1) {
+        newObjects[childIndex] = {
+          ...newObjects[childIndex],
+          parentId: action.newParentId,
+        };
+      }
+
+      return {
+        ...state,
+        objects: newObjects,
+      };
+    }
 
     case "CLEAR_SCENE":
       return {

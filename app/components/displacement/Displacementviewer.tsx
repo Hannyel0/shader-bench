@@ -24,9 +24,6 @@ import {
   Info,
   ChevronLeft,
   ChevronRight,
-  Move,
-  Palette,
-  Settings2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -46,10 +43,13 @@ export const DisplacementViewer: React.FC = () => {
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize scene with a sphere on client side only to avoid hydration mismatch
+  // Initialize scene with a sphere on client side only
   useEffect(() => {
     if (!isInitialized && sceneState.objects.length === 0) {
-      dispatch({ type: "ADD_OBJECT", object: createSceneObject("sphere", [0, 0, 0]) });
+      dispatch({
+        type: "ADD_OBJECT",
+        object: createSceneObject("sphere", [0, 0, 0]),
+      });
       setIsInitialized(true);
     }
   }, [isInitialized, sceneState.objects.length]);
@@ -77,6 +77,17 @@ export const DisplacementViewer: React.FC = () => {
     dispatch({ type: "TOGGLE_VISIBILITY", id });
   }, []);
 
+  const handleToggleExpanded = useCallback((id: string) => {
+    dispatch({ type: "TOGGLE_EXPANDED", id });
+  }, []);
+
+  const handleReparent = useCallback(
+    (childId: string, newParentId: string | null) => {
+      dispatch({ type: "REPARENT_OBJECT", childId, newParentId });
+    },
+    []
+  );
+
   const handleTransformChange = useCallback(
     (id: string, transform: Partial<SceneObject["transform"]>) => {
       dispatch({ type: "UPDATE_TRANSFORM", id, transform });
@@ -86,7 +97,7 @@ export const DisplacementViewer: React.FC = () => {
 
   const handleDisplacementChange = useCallback(
     (updates: Partial<DisplacementParams>) => {
-      if (selectedObject?.displacement) {  // Add null check for displacement
+      if (selectedObject?.displacement) {
         dispatch({
           type: "UPDATE_DISPLACEMENT",
           id: selectedObject.id,
@@ -198,7 +209,7 @@ export const DisplacementViewer: React.FC = () => {
         </div>
       </div>
 
-      {/* Left Panel: Object List */}
+      {/* Left Panel: Hierarchy */}
       <div className="absolute left-0 top-0 bottom-0 z-40 pointer-events-none">
         <div className="flex h-full items-center">
           {/* Toggle Button */}
@@ -220,9 +231,13 @@ export const DisplacementViewer: React.FC = () => {
             className={`
               h-[calc(100vh-4rem)] mt-14 ml-1 pointer-events-auto
               transition-all duration-300 ease-in-out
-              ${leftPanelOpen ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-full"}
+              ${
+                leftPanelOpen
+                  ? "opacity-100 translate-x-0"
+                  : "opacity-0 -translate-x-full"
+              }
             `}
-            style={{ width: leftPanelOpen ? "240px" : "0px" }}
+            style={{ width: leftPanelOpen ? "280px" : "0px" }}
           >
             {leftPanelOpen && (
               <div className="h-full bg-black/60 backdrop-blur-md border border-white/10 rounded-lg overflow-hidden">
@@ -234,6 +249,8 @@ export const DisplacementViewer: React.FC = () => {
                   onRemove={handleRemoveObject}
                   onDuplicate={handleDuplicateObject}
                   onToggleVisibility={handleToggleVisibility}
+                  onToggleExpanded={handleToggleExpanded}
+                  onReparent={handleReparent}
                 />
               </div>
             )}
@@ -249,7 +266,11 @@ export const DisplacementViewer: React.FC = () => {
             className={`
               h-[calc(100vh-4rem)] mt-14 mr-1 pointer-events-auto
               transition-all duration-300 ease-in-out
-              ${rightPanelOpen ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full"}
+              ${
+                rightPanelOpen
+                  ? "opacity-100 translate-x-0"
+                  : "opacity-0 translate-x-full"
+              }
             `}
             style={{ width: rightPanelOpen ? "300px" : "0px" }}
           >
@@ -292,25 +313,9 @@ export const DisplacementViewer: React.FC = () => {
             <span className="text-[10px] text-gray-400">
               {selectedObject
                 ? `Selected: ${selectedObject.name}`
-                : "Click object to select • Drag to orbit • Scroll to zoom"}
+                : "Click object to select • Drag to orbit • Scroll to zoom • Drag objects to reparent"}
             </span>
           </Card>
-
-          {performance && (
-            <Card className="inline-flex items-center gap-2 px-2 py-1 bg-black/60 backdrop-blur-md border-white/10">
-              <span className="text-[10px] text-gray-400 font-mono">
-                {performance.resolution.width}×{performance.resolution.height}
-              </span>
-              <span className="text-[10px] text-gray-400">•</span>
-              <span className="text-[10px] text-gray-400">
-                {performance.drawCalls} calls
-              </span>
-              <span className="text-[10px] text-gray-400">•</span>
-              <span className="text-[10px] text-gray-400">
-                {(performance.geometryMemory / 1024 / 1024).toFixed(1)}MB
-              </span>
-            </Card>
-          )}
         </div>
       </div>
     </div>
