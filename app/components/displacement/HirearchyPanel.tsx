@@ -39,7 +39,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
-interface ObjectListPanelProps {
+interface HierarchyPanelProps {
   objects: SceneObject[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
@@ -305,7 +305,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   );
 };
 
-export const ObjectListPanel: React.FC<ObjectListPanelProps> = ({
+export const HierarchyPanel: React.FC<HierarchyPanelProps> = ({
   objects,
   selectedId,
   onSelect,

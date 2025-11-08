@@ -2,7 +2,7 @@
 
 import React, { useState, useReducer, useCallback, useEffect } from "react";
 import { MultiObjectCanvas } from "./Multiobjectcanvas";
-import { ObjectListPanel } from "./ObjectListPanel";
+import { HierarchyPanel } from "./HirearchyPanel";
 import { ObjectPropertiesPanel } from "./ObjectPropertiesPanel";
 import { TransformToolbar } from "./TransformToolbar";
 import {
@@ -17,13 +17,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import {
-  Zap,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Home,
   Waves,
   Info,
   ChevronLeft,
   ChevronRight,
+  Move,
+  RotateCw,
+  Maximize2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -55,6 +64,31 @@ export const DisplacementViewer: React.FC = () => {
   }, [isInitialized, sceneState.objects.length]);
 
   const selectedObject = getSelectedObject(sceneState);
+
+  // Keyboard shortcuts for transform modes
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Only activate if an object is selected and not typing in an input
+      if (!selectedObject || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      switch (e.key.toLowerCase()) {
+        case "g":
+          setTransformMode("translate");
+          break;
+        case "r":
+          setTransformMode("rotate");
+          break;
+        case "s":
+          setTransformMode("scale");
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [selectedObject]);
 
   // Scene management handlers
   const handleAddObject = useCallback((object: SceneObject) => {
@@ -145,8 +179,8 @@ export const DisplacementViewer: React.FC = () => {
 
       {/* Top Toolbar Overlay */}
       <div className="absolute top-0 left-0 right-0 z-50 pointer-events-none">
-        <div className="flex items-center justify-between p-2 pointer-events-auto">
-          {/* Left: Branding */}
+        {/* Left: Branding */}
+        <div className="absolute left-2 top-2 pointer-events-auto">
           <Card className="inline-flex items-center gap-2 px-2 py-1.5 bg-black/60 backdrop-blur-md border-white/10">
             <div className="p-1 rounded bg-blue-500/20">
               <Waves className="h-4 w-4 text-blue-400" />
@@ -156,20 +190,13 @@ export const DisplacementViewer: React.FC = () => {
               <p className="text-[9px] text-gray-400">Procedural Testing</p>
             </div>
           </Card>
+        </div>
 
-          {/* Center: Transform Tools */}
-          {selectedObject && (
-            <TransformToolbar
-              mode={transformMode}
-              onModeChange={setTransformMode}
-              disabled={!selectedObject}
-            />
-          )}
-
-          {/* Right: Navigation & Info */}
-          <div className="flex items-center gap-1.5">
-            {performance && (
-              <Card className="inline-flex items-center gap-2 px-2 py-1.5 bg-black/60 backdrop-blur-md border-white/10">
+        {/* Center: Navigation & Performance */}
+        <div className="absolute left-1/2 -translate-x-1/2 top-2 pointer-events-auto">
+          <TooltipProvider>
+            <Card className="inline-flex flex-row items-center gap-2 px-2 py-1.5 bg-black/60 backdrop-blur-md border-white/10">
+              {performance && (
                 <div className="flex items-center gap-2">
                   <Badge
                     variant={performance.fps >= 55 ? "default" : "destructive"}
@@ -181,31 +208,94 @@ export const DisplacementViewer: React.FC = () => {
                     {performance.triangleCount.toLocaleString()} tris
                   </span>
                 </div>
-              </Card>
-            )}
+              )}
 
-            <Link href="/shaders">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 px-2 text-[10px] bg-black/60 backdrop-blur-md border border-white/10 hover:bg-white/10 text-white"
-              >
-                <Zap className="w-3 h-3 mr-1" />
-                Gallery
-              </Button>
-            </Link>
+              {performance && <Separator orientation="vertical" className="h-4 bg-white/20" />}
 
-            <Link href="/">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 px-2 text-[10px] bg-black/60 backdrop-blur-md border border-white/10 hover:bg-white/10 text-white"
-              >
-                <Home className="w-3 h-3 mr-1" />
-                Home
-              </Button>
-            </Link>
-          </div>
+              {selectedObject && (
+                <>
+                  <div className="inline-flex items-center gap-0.5">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant={transformMode === "translate" ? "default" : "ghost"}
+                          onClick={() => setTransformMode("translate")}
+                          className={`h-6 w-6 ${
+                            transformMode === "translate"
+                              ? "bg-blue-600 hover:bg-blue-700 text-white"
+                              : "hover:bg-white/10 text-gray-300"
+                          }`}
+                        >
+                          <Move className="w-3.5 h-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">Transform (G)</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant={transformMode === "rotate" ? "default" : "ghost"}
+                          onClick={() => setTransformMode("rotate")}
+                          className={`h-6 w-6 ${
+                            transformMode === "rotate"
+                              ? "bg-blue-600 hover:bg-blue-700 text-white"
+                              : "hover:bg-white/10 text-gray-300"
+                          }`}
+                        >
+                          <RotateCw className="w-3.5 h-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">Rotate (R)</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant={transformMode === "scale" ? "default" : "ghost"}
+                          onClick={() => setTransformMode("scale")}
+                          className={`h-6 w-6 ${
+                            transformMode === "scale"
+                              ? "bg-blue-600 hover:bg-blue-700 text-white"
+                              : "hover:bg-white/10 text-gray-300"
+                          }`}
+                        >
+                          <Maximize2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">Scale (S)</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+
+                  <Separator orientation="vertical" className="h-4 bg-white/20" />
+                </>
+              )}
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link href="/">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 hover:bg-white/10 text-white"
+                    >
+                      <Home className="w-3 h-3" />
+                    </Button>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Home</p>
+                </TooltipContent>
+              </Tooltip>
+            </Card>
+          </TooltipProvider>
         </div>
       </div>
 
@@ -241,7 +331,7 @@ export const DisplacementViewer: React.FC = () => {
           >
             {leftPanelOpen && (
               <div className="h-full bg-black/60 backdrop-blur-md border border-white/10 rounded-lg overflow-hidden">
-                <ObjectListPanel
+                <HierarchyPanel
                   objects={sceneState.objects}
                   selectedId={sceneState.selectedId}
                   onSelect={handleSelectObject}
