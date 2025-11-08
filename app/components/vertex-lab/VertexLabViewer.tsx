@@ -46,7 +46,7 @@ export const VertexLabViewer: React.FC = () => {
   const [performance, setPerformance] = useState<PerformanceMetrics | null>(
     null
   );
-  const [bottomPanelOpen, setBottomPanelOpen] = useState(true);
+  const [bottomPanelOpen, setBottomPanelOpen] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize scene with a sphere on client side only
@@ -323,6 +323,30 @@ export const VertexLabViewer: React.FC = () => {
         </div>
       </div>
 
+      {/* Left Panel: Hierarchy */}
+      <div
+        className="absolute left-0 z-40 transition-all duration-300 ease-in-out"
+        style={{
+          width: "280px",
+          top: "50px",
+          bottom: bottomPanelOpen ? "280px" : "0px",
+        }}
+      >
+        <div className="h-full p-4">
+          <HierarchyPanel
+            objects={sceneState.objects}
+            selectedId={sceneState.selectedId}
+            onSelect={handleSelectObject}
+            onAdd={handleAddObject}
+            onRemove={handleRemoveObject}
+            onDuplicate={handleDuplicateObject}
+            onToggleVisibility={handleToggleVisibility}
+            onToggleExpanded={handleToggleExpanded}
+            onReparent={handleReparent}
+          />
+        </div>
+      </div>
+
       {/* Right Panel: Properties */}
       <div
         className="absolute right-0 top-0 z-40 transition-all duration-300 ease-in-out"
@@ -347,7 +371,7 @@ export const VertexLabViewer: React.FC = () => {
         </div>
       </div>
 
-      {/* Bottom Panel: Hierarchy + Assets */}
+      {/* Bottom Panel: Assets */}
       <div className="absolute bottom-0 left-0 right-0 z-40 transition-all duration-300 ease-in-out">
         <div className="flex flex-col items-center">
           {/* Toggle Button */}
@@ -375,28 +399,9 @@ export const VertexLabViewer: React.FC = () => {
           >
             <div className="h-full px-4 pb-4">
               <Card className="h-full bg-zinc-900/80 backdrop-blur-xl border-zinc-800 shadow-2xl overflow-hidden">
-                <div className="h-full flex gap-3 p-3">
-                  {/* Hierarchy Panel */}
-                  <div className="w-1/3 h-full">
-                    <HierarchyPanel
-                      objects={sceneState.objects}
-                      selectedId={sceneState.selectedId}
-                      onSelect={handleSelectObject}
-                      onAdd={handleAddObject}
-                      onRemove={handleRemoveObject}
-                      onDuplicate={handleDuplicateObject}
-                      onToggleVisibility={handleToggleVisibility}
-                      onToggleExpanded={handleToggleExpanded}
-                      onReparent={handleReparent}
-                    />
-                  </div>
-
-                  <Separator orientation="vertical" className="bg-zinc-800" />
-
+                <div className="h-full p-3">
                   {/* Assets Panel */}
-                  <div className="flex-1 h-full">
-                    <AssetsPanel />
-                  </div>
+                  <AssetsPanel />
                 </div>
               </Card>
             </div>
