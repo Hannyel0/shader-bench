@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { DisplacementParams, PerformanceMetrics } from "./SceneManager";
+import { VertexParams, PerformanceMetrics } from "./SceneManager";
 import {
-  DisplacementExporter,
-  DisplacementExportData,
-} from "../../utils/DisplacementExporter";
+  VertexLabExporter,
+  VertexLabExportData,
+} from "../../utils/VertexLabExporter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,14 +42,14 @@ import {
   FileText,
 } from "lucide-react";
 
-interface DisplacementConfigManagerProps {
-  currentParams: DisplacementParams;
+interface VertexLabConfigManagerProps {
+  currentParams: VertexParams;
   performanceMetrics?: PerformanceMetrics;
-  onImport?: (params: DisplacementParams) => void;
+  onImport?: (params: VertexParams) => void;
 }
 
-export const DisplacementConfigManager: React.FC<DisplacementConfigManagerProps> = ({ currentParams, performanceMetrics, onImport }) => {
-  const [exportData, setExportData] = useState<DisplacementExportData | null>(
+export const VertexLabConfigManager: React.FC<VertexLabConfigManagerProps> = ({ currentParams, performanceMetrics, onImport }) => {
+  const [exportData, setExportData] = useState<VertexLabExportData | null>(
     null
   );
   const [importError, setImportError] = useState<string | null>(null);
@@ -60,7 +60,7 @@ export const DisplacementConfigManager: React.FC<DisplacementConfigManagerProps>
 
   // Generate export data on demand
   const handleExportPreview = () => {
-    const data = DisplacementExporter.exportConfiguration(
+    const data = VertexLabExporter.exportConfiguration(
       currentParams,
       performanceMetrics
     );
@@ -69,7 +69,7 @@ export const DisplacementConfigManager: React.FC<DisplacementConfigManagerProps>
 
   // Download JSON file
   const handleDownload = () => {
-    DisplacementExporter.downloadConfiguration(
+    VertexLabExporter.downloadConfiguration(
       currentParams,
       performanceMetrics
     );
@@ -130,7 +130,7 @@ export const DisplacementConfigManager: React.FC<DisplacementConfigManagerProps>
 
   // Import and validate JSON
   const handleImportJSON = (json: string) => {
-    const result = DisplacementExporter.importConfiguration(json);
+    const result = VertexLabExporter.importConfiguration(json);
 
     if (!result.success) {
       setImportError(result.error || "Unknown import error");
@@ -152,7 +152,7 @@ export const DisplacementConfigManager: React.FC<DisplacementConfigManagerProps>
   };
 
   // Format JSON for display
-  const formatJSON = (data: DisplacementExportData, section?: string) => {
+  const formatJSON = (data: VertexLabExportData, section?: string) => {
     if (section === "config") {
       return JSON.stringify(data.config, null, 2);
     } else if (section === "shaders") {

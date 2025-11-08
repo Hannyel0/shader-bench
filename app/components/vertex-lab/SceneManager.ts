@@ -7,7 +7,7 @@ import * as THREE from "three";
 
 export type GeometryType = "sphere" | "plane" | "box" | "torus" | "cylinder";
 
-export interface DisplacementParams {
+export interface VertexParams {
   noiseType:
     | "perlin"
     | "simplex"
@@ -62,7 +62,7 @@ export interface SceneObject {
   id: string;
   name: string;
   type: GeometryType;
-  displacement?: DisplacementParams;
+  displacement?: VertexParams;
   material: MaterialProperties;
   transform: {
     position: [number, number, number];
@@ -247,8 +247,8 @@ export function createDefaultMaterial(): MaterialProperties {
   };
 }
 
-// Create default displacement params
-export function createDefaultDisplacementParams(): DisplacementParams {
+// Create default vertex params
+export function createDefaultVertexParams(): VertexParams {
   return {
     noiseType: "perlin",
     amplitude: 0.5,
@@ -303,7 +303,7 @@ export type SceneAction =
   | {
       type: "UPDATE_DISPLACEMENT";
       id: string;
-      displacement: Partial<DisplacementParams>;
+      displacement: Partial<VertexParams>;
     }
   | {
       type: "UPDATE_TRANSFORM";
@@ -404,7 +404,7 @@ export function sceneReducer(
         ...state,
         objects: state.objects.map((obj) =>
           obj.id === action.id
-            ? { ...obj, displacement: createDefaultDisplacementParams() }
+            ? { ...obj, displacement: createDefaultVertexParams() }
             : obj
         ),
       };

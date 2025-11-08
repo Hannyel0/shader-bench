@@ -25,10 +25,10 @@ export default function ShadersPage() {
             <Badge variant="outline" className="text-xs">
               WebGL2 Performance Profiler
             </Badge>
-            <Link href="/displacement">
+            <Link href="/vertex-lab">
               <Button variant="outline" size="sm">
                 <Waves className="w-4 h-4 mr-2" />
-                Displacement Lab
+                Vertex Lab
               </Button>
             </Link>
             <Link href="/">

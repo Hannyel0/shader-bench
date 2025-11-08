@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { DisplacementParams } from "./SceneManager";
+import { VertexParams } from "./SceneManager";
 import { NoiseType, NoiseConfigs } from "../../utils/Noiselibrary";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -25,9 +25,9 @@ import {
 } from "lucide-react";
 
 interface NoiseControlsProps {
-  params: DisplacementParams;
-  onParamsChange: (params: Partial<DisplacementParams>) => void;
-  onPresetLoad: (preset: DisplacementParams) => void;
+  params: VertexParams;
+  onParamsChange: (params: Partial<VertexParams>) => void;
+  onPresetLoad: (preset: VertexParams) => void;
 }
 
 export const NoiseControls: React.FC<NoiseControlsProps> = ({
@@ -38,7 +38,7 @@ export const NoiseControls: React.FC<NoiseControlsProps> = ({
   const currentNoiseConfig = NoiseConfigs[params.noiseType];
 
   const handleSliderChange = (
-    key: keyof DisplacementParams,
+    key: keyof VertexParams,
     value: number[]
   ) => {
     onParamsChange({ [key]: value[0] });
@@ -420,7 +420,7 @@ export const NoiseControls: React.FC<NoiseControlsProps> = ({
 };
 
 // Preset configurations
-export const PRESETS: Record<string, DisplacementParams> = {
+export const PRESETS: Record<string, VertexParams> = {
   default: {
     noiseType: "perlin",
     amplitude: 0.3,

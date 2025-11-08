@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { SceneObject, DisplacementParams } from "./SceneManager";
+import { SceneObject, VertexParams } from "./SceneManager";
 import { NoiseControls } from "./Noisecontrols";
 import { TransformTab } from "./TransformTab";
 import { MaterialTab } from "./MaterialTab";
@@ -37,7 +37,7 @@ import {
 
 interface ObjectPropertiesPanelProps {
   object: SceneObject;
-  onDisplacementChange: (updates: Partial<DisplacementParams>) => void;
+  onDisplacementChange: (updates: Partial<VertexParams>) => void;
   onTransformChange: (transform: Partial<SceneObject["transform"]>) => void;
   onMaterialChange: (material: Partial<SceneObject["material"]>) => void;
   onAddDisplacement?: (id: string) => void;

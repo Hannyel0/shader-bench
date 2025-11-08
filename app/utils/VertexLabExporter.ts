@@ -1,15 +1,15 @@
 /**
- * Comprehensive Displacement Configuration Exporter
+ * Comprehensive Vertex Lab Configuration Exporter
  * Provides complete data export for recreation in other Three.js projects
  */
 
 import {
-  DisplacementParams,
+  VertexParams,
   PerformanceMetrics,
-} from "../components/displacement/SceneManager";
+} from "../components/vertex-lab/SceneManager";
 import { NoiseLibrary, NoiseType, NoiseConfigs } from "./Noiselibrary";
 
-export interface DisplacementExportData {
+export interface VertexLabExportData {
   // Metadata
   metadata: {
     version: string;
@@ -19,12 +19,12 @@ export interface DisplacementExportData {
     description: string;
   };
 
-  // Complete displacement configuration
+  // Complete vertex configuration
   config: {
     noiseType: NoiseType;
     noiseLabel: string;
     noiseDescription: string;
-    parameters: DisplacementParams;
+    parameters: VertexParams;
   };
 
   // Performance metrics at export time
@@ -67,14 +67,14 @@ export interface DisplacementExportData {
   };
 }
 
-export class DisplacementExporter {
+export class VertexLabExporter {
   /**
-   * Exports complete displacement configuration with all necessary data
+   * Exports complete vertex configuration with all necessary data
    */
   static exportConfiguration(
-    params: DisplacementParams,
+    params: VertexParams,
     performanceMetrics?: PerformanceMetrics
-  ): DisplacementExportData {
+  ): VertexLabExportData {
     const noiseConfig = NoiseConfigs[params.noiseType];
     const vertexShader = this.generateVertexShader(params);
     const fragmentShader = this.generateFragmentShader(params);
@@ -85,8 +85,8 @@ export class DisplacementExporter {
         version: "1.0.0",
         exportDate: new Date().toISOString(),
         exportTimestamp: Date.now(),
-        generator: "Displacement Lab - Three.js Displacement Viewer",
-        description: `${noiseConfig.label} displacement configuration with ${params.subdivisions}x${params.subdivisions} subdivisions`,
+        generator: "Vertex Lab - Three.js Vertex Displacement Viewer",
+        description: `${noiseConfig.label} vertex displacement configuration with ${params.subdivisions}x${params.subdivisions} subdivisions`,
       },
 
       config: {
@@ -140,7 +140,7 @@ export class DisplacementExporter {
   /**
    * Generate complete vertex shader code
    */
-  private static generateVertexShader(params: DisplacementParams): string {
+  private static generateVertexShader(params: VertexParams): string {
     const noiseFunction = this.getNoiseFunction(params.noiseType);
     const displacementCall = this.getDisplacementCall(params.noiseType);
 
@@ -211,7 +211,7 @@ void main() {
   /**
    * Generate fragment shader code
    */
-  private static generateFragmentShader(params: DisplacementParams): string {
+  private static generateFragmentShader(params: VertexParams): string {
     return `// Fragment Shader
 uniform vec3 uColor;
 uniform int uVisualizationMode; // 0: solid, 1: height, 2: normal, 3: wireframe
@@ -425,9 +425,9 @@ void main() {
    * Generate implementation guide
    */
   private static generateImplementationGuide(
-    params: DisplacementParams,
+    params: VertexParams,
     noiseLabel: string
-  ): DisplacementExportData["implementation"] {
+  ): VertexLabExportData["implementation"] {
     const visualizationMode =
       params.visualizationMode === "solid"
         ? 0
@@ -520,7 +520,7 @@ animate(0);`,
    * Export to JSON string
    */
   static exportToJSON(
-    params: DisplacementParams,
+    params: VertexParams,
     performanceMetrics?: PerformanceMetrics,
     pretty: boolean = true
   ): string {
@@ -532,7 +532,7 @@ animate(0);`,
    * Export to file download
    */
   static downloadConfiguration(
-    params: DisplacementParams,
+    params: VertexParams,
     performanceMetrics?: PerformanceMetrics,
     filename?: string
   ): void {
@@ -557,12 +557,12 @@ animate(0);`,
    */
   static importConfiguration(json: string): {
     success: boolean;
-    data?: DisplacementExportData;
+    data?: VertexLabExportData;
     error?: string;
     warnings?: string[];
   } {
     try {
-      const data = JSON.parse(json) as DisplacementExportData;
+      const data = JSON.parse(json) as VertexLabExportData;
       const warnings: string[] = [];
 
       // Validation
@@ -617,7 +617,7 @@ animate(0);`,
   /**
    * Generate human-readable summary
    */
-  static generateSummary(data: DisplacementExportData): string {
+  static generateSummary(data: VertexLabExportData): string {
     const config = data.config;
     const perf = data.performance.metrics;
 

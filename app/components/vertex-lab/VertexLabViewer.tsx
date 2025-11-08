@@ -10,7 +10,7 @@ import {
   getSelectedObject,
   SceneObject,
   createSceneObject,
-  DisplacementParams,
+  VertexParams,
   PerformanceMetrics,
 } from "./SceneManager";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-export const DisplacementViewer: React.FC = () => {
+export const VertexLabViewer: React.FC = () => {
   const [sceneState, dispatch] = useReducer(sceneReducer, {
     objects: [],
     selectedId: null,
@@ -130,7 +130,7 @@ export const DisplacementViewer: React.FC = () => {
   );
 
   const handleDisplacementChange = useCallback(
-    (updates: Partial<DisplacementParams>) => {
+    (updates: Partial<VertexParams>) => {
       if (selectedObject?.displacement) {
         dispatch({
           type: "UPDATE_DISPLACEMENT",
@@ -186,7 +186,7 @@ export const DisplacementViewer: React.FC = () => {
               <Waves className="h-4 w-4 text-[#FF5C3D]" />
             </div>
             <div>
-              <h1 className="text-xs font-bold text-white">Displacement Lab</h1>
+              <h1 className="text-xs font-bold text-white">Vertex Lab</h1>
               <p className="text-[9px] text-zinc-500">Procedural Testing</p>
             </div>
 

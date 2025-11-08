@@ -1,6 +1,6 @@
 /**
  * Comprehensive GLSL Noise Function Library
- * Contains various noise implementations for procedural displacement
+ * Contains various noise implementations for procedural vertex displacement
  */
 
 export const NoiseLibrary = {
@@ -389,7 +389,7 @@ export const NoiseConfigs: Record<NoiseType, NoiseConfig> = {
   },
 };
 
-// Default presets for displacement
+// Default presets for vertex displacement
 export const PRESETS = {
   default: {
     noiseType: "perlin" as NoiseType,

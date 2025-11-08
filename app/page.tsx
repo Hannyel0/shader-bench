@@ -48,14 +48,14 @@ export default function Home() {
                 Launch Gallery
               </Button>
             </Link>
-            <Link href="/displacement">
+            <Link href="/vertex-lab">
               <Button
                 size="lg"
                 variant="default"
                 className="text-lg px-8 h-12 bg-primary/90 hover:bg-primary"
               >
                 <Waves className="mr-2 h-5 w-5" />
-                Displacement Lab
+                Vertex Lab
               </Button>
             </Link>
             <Link href="/shaders">
@@ -106,26 +106,26 @@ export default function Home() {
             </Card>
           </div>
 
-          {/* New Displacement Lab Section */}
+          {/* New Vertex Lab Section */}
           <div className="mt-16 pt-12 border-t border-border/40">
             <div className="max-w-3xl mx-auto">
               <Badge className="mb-4" variant="secondary">
                 <Waves className="w-3 h-3 mr-1" />
-                New: Displacement Lab
+                New: Vertex Lab
               </Badge>
               <h2 className="text-3xl font-bold mb-4">
-                Procedural Displacement Testing
+                Procedural Vertex Displacement Testing
               </h2>
               <p className="text-lg text-muted-foreground mb-6">
                 Real-time 3D noise function visualization with interactive
                 parameter control. Test Perlin, Simplex, Voronoi, FBM, and more
-                on a dynamic sphere geometry with vertex displacement.
+                on dynamic geometry with vertex displacement.
               </p>
               <div className="flex gap-3 justify-center flex-wrap">
                 <Badge variant="outline">Three.js</Badge>
                 <Badge variant="outline">React Three Fiber</Badge>
                 <Badge variant="outline">8+ Noise Functions</Badge>
-                <Badge variant="outline">Real-time Displacement</Badge>
+                <Badge variant="outline">Real-time Vertex Displacement</Badge>
                 <Badge variant="outline">GLSL Shaders</Badge>
               </div>
             </div>
