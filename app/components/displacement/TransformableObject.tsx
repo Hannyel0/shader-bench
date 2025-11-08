@@ -22,14 +22,18 @@ export const TransformableObject = React.forwardRef<
 >(({ object, isSelected, onSelect }, forwardedRef) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
+  const standardMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
 
   // Expose mesh ref to parent for transform controls
   useImperativeHandle(forwardedRef, () => meshRef.current!);
 
   const { displacement, transform, type, visible } = object;
+  const hasDisplacement = !!displacement;
 
-  // Generate vertex shader based on noise type
+  // Generate vertex shader based on noise type (only if displacement exists)
   const vertexShader = useMemo(() => {
+    if (!hasDisplacement || !displacement) return null;
+
     const noiseFunction = getNoiseFunction(displacement.noiseType);
 
     return `
@@ -95,10 +99,13 @@ export const TransformableObject = React.forwardRef<
         gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
       }
     `;
-  }, [displacement.noiseType]);
+  }, [hasDisplacement, displacement?.noiseType]);
 
-  // Fragment shader with selection highlight
+  // Fragment shader with selection highlight (only if displacement exists)
   const fragmentShader = useMemo(() => {
+    if (!hasDisplacement) return null;
+
+
     return `
       uniform vec3 uColor;
       uniform int uVisualizationMode;
@@ -163,11 +170,13 @@ export const TransformableObject = React.forwardRef<
         gl_FragColor = vec4(finalColor, 1.0);
       }
     `;
-  }, []);
+  }, [hasDisplacement]);
 
-  // Create shader uniforms
-  const uniforms = useMemo(
-    () => ({
+  // Create shader uniforms (only if displacement exists)
+  const uniforms = useMemo(() => {
+    if (!hasDisplacement || !displacement) return null;
+
+    return {
       uTime: { value: 0 },
       uAmplitude: { value: displacement.amplitude },
       uFrequency: { value: displacement.frequency },
@@ -191,14 +200,12 @@ export const TransformableObject = React.forwardRef<
       },
       uRoughness: { value: object.material.roughness },
       uSelected: { value: isSelected },
-    }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [object.id] // Only recreate on object ID change
-  );
+    };
+  }, [hasDisplacement, object.id]);
 
-  // Update uniforms efficiently (no recreation)
+  // Update uniforms efficiently (no recreation) - only for displacement shaders
   React.useEffect(() => {
-    if (materialRef.current) {
+    if (materialRef.current && hasDisplacement && displacement) {
       const mat = materialRef.current;
       mat.uniforms.uAmplitude.value = displacement.amplitude;
       mat.uniforms.uFrequency.value = displacement.frequency;
@@ -222,11 +229,32 @@ export const TransformableObject = React.forwardRef<
       mat.uniforms.uSelected.value = isSelected;
       mat.wireframe = displacement.wireframe;
     }
-  }, [displacement, object.material, isSelected]);
+  }, [hasDisplacement, displacement, object.material, isSelected]);
 
-  // Animate shader time
+  // Update standard material when not using displacement
+  React.useEffect(() => {
+    if (standardMaterialRef.current && !hasDisplacement) {
+      const mat = standardMaterialRef.current;
+      mat.color.set(object.material.color);
+      mat.roughness = object.material.roughness;
+      mat.metalness = object.material.metalness;
+      mat.opacity = object.material.opacity;
+      mat.emissiveIntensity = object.material.emissiveIntensity;
+      mat.transparent = object.material.opacity < 1;
+      // Add selection highlight via emissive
+      if (isSelected) {
+        mat.emissive.setHex(0x4a9eff);
+        mat.emissiveIntensity = 0.3;
+      } else {
+        mat.emissive.setHex(0x000000);
+        mat.emissiveIntensity = object.material.emissiveIntensity;
+      }
+    }
+  }, [hasDisplacement, object.material, isSelected]);
+
+  // Animate shader time (only for displacement)
   useFrame((state) => {
-    if (materialRef.current) {
+    if (materialRef.current && hasDisplacement) {
       materialRef.current.uniforms.uTime.value = state.clock.elapsedTime;
     }
   });
@@ -242,7 +270,7 @@ export const TransformableObject = React.forwardRef<
 
   // Get or create cached geometry
   const geometry = useMemo(() => {
-    const subdivisions = displacement.subdivisions;
+    const subdivisions = displacement?.subdivisions || 32; // Fallback for non-displaced objects
     let geo = geometryCache.get(type, subdivisions);
 
     if (!geo) {
@@ -251,7 +279,7 @@ export const TransformableObject = React.forwardRef<
     }
 
     return geo;
-  }, [type, displacement.subdivisions]);
+  }, [type, displacement?.subdivisions]);
 
   if (!visible) return null;
 
@@ -273,15 +301,28 @@ export const TransformableObject = React.forwardRef<
           document.body.style.cursor = "default";
         }}
       >
-        <shaderMaterial
-          key={`${object.id}-${displacement.noiseType}`}
-          ref={materialRef}
-          vertexShader={vertexShader}
-          fragmentShader={fragmentShader}
-          uniforms={uniforms}
-          wireframe={displacement.wireframe}
-          side={THREE.DoubleSide}
-        />
+        {hasDisplacement && displacement ? (
+          <shaderMaterial
+            key={`${object.id}-${displacement.noiseType}`}
+            ref={materialRef}
+            vertexShader={vertexShader!}
+            fragmentShader={fragmentShader!}
+            uniforms={uniforms!}
+            wireframe={displacement.wireframe}
+            side={THREE.DoubleSide}
+          />
+        ) : (
+          <meshStandardMaterial
+            ref={standardMaterialRef}
+            color={object.material.color}
+            roughness={object.material.roughness}
+            metalness={object.material.metalness}
+            transparent={object.material.opacity < 1}
+            opacity={object.material.opacity}
+            emissiveIntensity={object.material.emissiveIntensity}
+            side={THREE.DoubleSide}
+          />
+        )}
       </mesh>
     </group>
   );

@@ -63,7 +63,7 @@ const PerformanceMonitor: React.FC<{
       const triangleCount = objects
         .filter((obj) => obj.visible)
         .reduce((sum, obj) => {
-          const subdivisions = obj.displacement.subdivisions;
+          const subdivisions = obj.displacement?.subdivisions || 32;  // Fallback for non-displaced objects
           return sum + subdivisions * subdivisions * 2;
         }, 0);
 
@@ -74,7 +74,7 @@ const PerformanceMonitor: React.FC<{
       const geometryMemory = objects
         .filter((obj) => obj.visible)
         .reduce((sum, obj) => {
-          const subdivisions = obj.displacement.subdivisions;
+          const subdivisions = obj.displacement?.subdivisions || 32;  // Fallback for non-displaced objects
           const vertexCount = (subdivisions + 1) * (subdivisions + 1);
           return (
             sum +

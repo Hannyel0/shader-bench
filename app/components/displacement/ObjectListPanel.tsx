@@ -167,8 +167,18 @@ export const ObjectListPanel: React.FC<ObjectListPanelProps> = ({
                     <div className="text-[10px] font-medium truncate text-white">
                       {obj.name}
                     </div>
-                    <div className="text-[9px] text-gray-400 truncate">
-                      {obj.displacement.noiseType}
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <Badge className="h-3 px-1 text-[8px] bg-green-500/20 text-green-300 border-0">
+                        Transform
+                      </Badge>
+                      <Badge className="h-3 px-1 text-[8px] bg-purple-500/20 text-purple-300 border-0">
+                        Material
+                      </Badge>
+                      {obj.displacement && (
+                        <Badge className="h-3 px-1 text-[8px] bg-blue-500/20 text-blue-300 border-0">
+                          Displacement
+                        </Badge>
+                      )}
                     </div>
                   </div>
 

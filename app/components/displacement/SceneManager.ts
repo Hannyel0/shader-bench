@@ -51,7 +51,7 @@ export interface SceneObject {
   id: string;
   name: string;
   type: GeometryType;
-  displacement: DisplacementParams;
+  displacement?: DisplacementParams; // Optional - objects can exist without displacement
   material: MaterialProperties;
   transform: {
     position: [number, number, number];
@@ -143,7 +143,7 @@ export function createSceneObject(
       Date.now() % 1000
     }`,
     type,
-    displacement: createDefaultDisplacementParams(),
+    // displacement is omitted - objects start without it (ECS pattern)
     material: createDefaultMaterial(),
     transform: {
       position,
@@ -160,6 +160,8 @@ export type SceneAction =
   | { type: "REMOVE_OBJECT"; id: string }
   | { type: "SELECT_OBJECT"; id: string | null }
   | { type: "UPDATE_OBJECT"; id: string; updates: Partial<SceneObject> }
+  | { type: "ADD_DISPLACEMENT"; id: string }
+  | { type: "REMOVE_DISPLACEMENT"; id: string }
   | {
       type: "UPDATE_DISPLACEMENT";
       id: string;
@@ -189,7 +191,8 @@ export function sceneReducer(
       return {
         ...state,
         objects: [...state.objects, action.object],
-        selectedId: action.object.id,
+        // Don't auto-select newly added objects
+        selectedId: state.selectedId,
       };
 
     case "REMOVE_OBJECT":
@@ -213,11 +216,33 @@ export function sceneReducer(
         ),
       };
 
-    case "UPDATE_DISPLACEMENT":
+    case "ADD_DISPLACEMENT":
       return {
         ...state,
         objects: state.objects.map((obj) =>
           obj.id === action.id
+            ? { ...obj, displacement: createDefaultDisplacementParams() }
+            : obj
+        ),
+      };
+
+    case "REMOVE_DISPLACEMENT":
+      return {
+        ...state,
+        objects: state.objects.map((obj) => {
+          if (obj.id === action.id) {
+            const { displacement, ...rest } = obj;
+            return rest as SceneObject;
+          }
+          return obj;
+        }),
+      };
+
+    case "UPDATE_DISPLACEMENT":
+      return {
+        ...state,
+        objects: state.objects.map((obj) =>
+          obj.id === action.id && obj.displacement
             ? {
                 ...obj,
                 displacement: { ...obj.displacement, ...action.displacement },
@@ -273,7 +298,8 @@ export function sceneReducer(
       return {
         ...state,
         objects: [...state.objects, duplicated],
-        selectedId: duplicated.id,
+        // Don't auto-select duplicated objects
+        selectedId: state.selectedId,
       };
     }
 

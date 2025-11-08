@@ -86,7 +86,7 @@ export const DisplacementViewer: React.FC = () => {
 
   const handleDisplacementChange = useCallback(
     (updates: Partial<DisplacementParams>) => {
-      if (selectedObject) {
+      if (selectedObject?.displacement) {  // Add null check for displacement
         dispatch({
           type: "UPDATE_DISPLACEMENT",
           id: selectedObject.id,
@@ -96,6 +96,14 @@ export const DisplacementViewer: React.FC = () => {
     },
     [selectedObject]
   );
+
+  const handleAddDisplacement = useCallback((id: string) => {
+    dispatch({ type: "ADD_DISPLACEMENT", id });
+  }, []);
+
+  const handleRemoveDisplacement = useCallback((id: string) => {
+    dispatch({ type: "REMOVE_DISPLACEMENT", id });
+  }, []);
 
   const handleMaterialChange = useCallback(
     (updates: Partial<SceneObject["material"]>) => {
@@ -253,6 +261,8 @@ export const DisplacementViewer: React.FC = () => {
                   handleTransformChange(selectedObject.id, transform)
                 }
                 onMaterialChange={handleMaterialChange}
+                onAddDisplacement={handleAddDisplacement}
+                onRemoveDisplacement={handleRemoveDisplacement}
               />
             )}
           </div>
