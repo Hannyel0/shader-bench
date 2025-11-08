@@ -2,11 +2,11 @@
 
 import React from "react";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { RotateCcw } from "lucide-react";
 import { SceneObject } from "./SceneManager";
+import { NumberInput } from "@/components/ui/number-input";
 
 interface TransformTabProps {
   transform: SceneObject["transform"];
@@ -48,26 +48,24 @@ export const TransformTab: React.FC<TransformTabProps> = ({
           <Button
             size="icon"
             variant="ghost"
-            className="h-6 w-6 hover:bg-zinc-700"
+            className="h-3.5 w-3.5 hover:bg-zinc-700 p-0"
             onClick={() => resetTransform("position")}
           >
-            <RotateCcw className="w-3 h-3 text-zinc-400" />
+            <RotateCcw className="w-1.5 h-1.5 text-zinc-400" />
           </Button>
         </div>
         <div className="grid grid-cols-3 gap-2">
           {["X", "Y", "Z"].map((axis, index) => (
-            <div key={axis} className="space-y-1">
-              <Label className="text-[10px] text-zinc-500">{axis}</Label>
-              <Input
-                type="number"
-                step="0.1"
-                value={transform.position[index].toFixed(2)}
-                onChange={(e) =>
-                  handleVectorChange("position", index, e.target.value)
-                }
-                className="h-7 text-xs bg-zinc-800/50 border-zinc-700 text-white focus-visible:ring-[#FF5C3D]/50"
-              />
-            </div>
+            <NumberInput
+              key={axis}
+              label={axis}
+              value={transform.position[index]}
+              onChange={(value) =>
+                handleVectorChange("position", index, value.toString())
+              }
+              step={0.1}
+              precision={2}
+            />
           ))}
         </div>
       </div>
@@ -81,30 +79,28 @@ export const TransformTab: React.FC<TransformTabProps> = ({
           <Button
             size="icon"
             variant="ghost"
-            className="h-6 w-6 hover:bg-zinc-700"
+            className="h-3.5 w-3.5 hover:bg-zinc-700 p-0"
             onClick={() => resetTransform("rotation")}
           >
-            <RotateCcw className="w-3 h-3 text-zinc-400" />
+            <RotateCcw className="w-1.5 h-1.5 text-zinc-400" />
           </Button>
         </div>
         <div className="grid grid-cols-3 gap-2">
           {["X", "Y", "Z"].map((axis, index) => (
-            <div key={axis} className="space-y-1">
-              <Label className="text-[10px] text-zinc-500">{axis} (°)</Label>
-              <Input
-                type="number"
-                step="1"
-                value={(transform.rotation[index] * (180 / Math.PI)).toFixed(1)}
-                onChange={(e) =>
-                  handleVectorChange(
-                    "rotation",
-                    index,
-                    (parseFloat(e.target.value) * (Math.PI / 180)).toString()
-                  )
-                }
-                className="h-7 text-xs bg-zinc-800/50 border-zinc-700 text-white focus-visible:ring-[#FF5C3D]/50"
-              />
-            </div>
+            <NumberInput
+              key={axis}
+              label={`${axis}°`}
+              value={transform.rotation[index] * (180 / Math.PI)}
+              onChange={(value) =>
+                handleVectorChange(
+                  "rotation",
+                  index,
+                  (value * (Math.PI / 180)).toString()
+                )
+              }
+              step={1}
+              precision={1}
+            />
           ))}
         </div>
       </div>
@@ -118,24 +114,25 @@ export const TransformTab: React.FC<TransformTabProps> = ({
           <Button
             size="icon"
             variant="ghost"
-            className="h-6 w-6 hover:bg-zinc-700"
+            className="h-3.5 w-3.5 hover:bg-zinc-700 p-0"
             onClick={() => resetTransform("scale")}
           >
-            <RotateCcw className="w-3 h-3 text-zinc-400" />
+            <RotateCcw className="w-1.5 h-1.5 text-zinc-400" />
           </Button>
         </div>
         <div className="grid grid-cols-3 gap-2">
           {["X", "Y", "Z"].map((axis, index) => (
-            <div key={axis} className="space-y-1">
-              <Label className="text-[10px] text-zinc-500">{axis}</Label>
-              <Input
-                type="number"
-                step="0.1"
-                value={transform.scale[index].toFixed(2)}
-                onChange={(e) => handleVectorChange("scale", index, e.target.value)}
-                className="h-7 text-xs bg-zinc-800/50 border-zinc-700 text-white focus-visible:ring-[#FF5C3D]/50"
-              />
-            </div>
+            <NumberInput
+              key={axis}
+              label={axis}
+              value={transform.scale[index]}
+              onChange={(value) =>
+                handleVectorChange("scale", index, value.toString())
+              }
+              step={0.1}
+              precision={2}
+              min={0.01}
+            />
           ))}
         </div>
       </div>
