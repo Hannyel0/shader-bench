@@ -12,7 +12,7 @@ import * as THREE from "three";
 import { NoiseLibrary, NoiseType } from "../../utils/Noiselibrary";
 import {
   SceneObject,
-  GeometryType,
+  PrimitiveGeometryType,
   geometryCache,
   getObjectById,
   getWorldTransform,
@@ -274,18 +274,20 @@ export const TransformableObject = React.forwardRef<
     [object.id, onSelect]
   );
 
-  // Get or create cached geometry
+  // Get or create cached geometry (only for primitive meshes)
   const geometry = useMemo(() => {
+    if (!object.primitiveType) return null;
+
     const subdivisions = displacement?.subdivisions || 32;
-    let geo = geometryCache.get(type, subdivisions);
+    let geo = geometryCache.get(object.primitiveType, subdivisions);
 
     if (!geo) {
-      geo = createGeometry(type, subdivisions);
-      geometryCache.set(type, subdivisions, geo);
+      geo = createGeometry(object.primitiveType, subdivisions);
+      geometryCache.set(object.primitiveType, subdivisions, geo);
     }
 
     return geo;
-  }, [type, displacement?.subdivisions]);
+  }, [object.primitiveType, displacement?.subdivisions]);
 
   // Render children recursively
   const children = useMemo(() => {
@@ -294,8 +296,8 @@ export const TransformableObject = React.forwardRef<
 
   if (!visible) return null;
 
-  // Handle GLTF objects separately
-  if (type === "gltf" && object.gltfData) {
+  // Handle GLTF objects (deprecated way - using gltfData)
+  if (object.gltfData) {
     return (
       <group
         ref={groupRef}
@@ -326,15 +328,49 @@ export const TransformableObject = React.forwardRef<
     );
   }
 
-  return (
-    <group
-      ref={groupRef}
-      position={worldTransform.position}
-      rotation={worldTransform.rotation}
-      scale={worldTransform.scale}
-    >
-      {/* Main mesh */}
-      <mesh
+  // Handle Three.js objects (new way - using threeObject)
+  if (object.threeObject && !object.primitiveType) {
+    return (
+      <group
+        ref={groupRef}
+        position={worldTransform.position}
+        rotation={worldTransform.rotation}
+        scale={worldTransform.scale}
+        onClick={handleClick}
+        onPointerOver={(e: ThreeEvent<PointerEvent>) => {
+          e.stopPropagation();
+          document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={() => {
+          document.body.style.cursor = "default";
+        }}
+      >
+        <primitive object={object.threeObject.clone()} />
+
+        {/* Render children recursively */}
+        {children.map((child) => (
+          <TransformableObject
+            key={child.id}
+            object={child}
+            allObjects={allObjects}
+            onSelect={onSelect}
+          />
+        ))}
+      </group>
+    );
+  }
+
+  // Handle primitive meshes
+  if (object.primitiveType && geometry) {
+    return (
+      <group
+        ref={groupRef}
+        position={worldTransform.position}
+        rotation={worldTransform.rotation}
+        scale={worldTransform.scale}
+      >
+        {/* Main mesh */}
+        <mesh
         ref={meshRef}
         geometry={geometry}
         onClick={handleClick}
@@ -371,6 +407,35 @@ export const TransformableObject = React.forwardRef<
         )}
       </mesh>
 
+        {/* Render children recursively */}
+        {children.map((child) => (
+          <TransformableObject
+            key={child.id}
+            object={child}
+            allObjects={allObjects}
+            onSelect={onSelect}
+          />
+        ))}
+      </group>
+    );
+  }
+
+  // Fallback for groups and other containers without geometry
+  return (
+    <group
+      ref={groupRef}
+      position={worldTransform.position}
+      rotation={worldTransform.rotation}
+      scale={worldTransform.scale}
+      onClick={handleClick}
+      onPointerOver={(e: ThreeEvent<PointerEvent>) => {
+        e.stopPropagation();
+        document.body.style.cursor = "pointer";
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = "default";
+      }}
+    >
       {/* Render children recursively */}
       {children.map((child) => (
         <TransformableObject
@@ -386,9 +451,9 @@ export const TransformableObject = React.forwardRef<
 
 TransformableObject.displayName = "TransformableObject";
 
-// Helper: Create geometry based on type
+// Helper: Create geometry based on primitive type
 function createGeometry(
-  type: GeometryType,
+  type: PrimitiveGeometryType,
   subdivisions: number
 ): THREE.BufferGeometry {
   switch (type) {

@@ -5,7 +5,33 @@
 
 import * as THREE from "three";
 
-export type GeometryType = "sphere" | "plane" | "box" | "torus" | "cylinder" | "gltf";
+// Three.js native object types
+export type ThreeObjectType =
+  // Mesh types (what you currently create)
+  | "Mesh"
+  // Container types
+  | "Group"
+  | "Scene"
+  // Light types
+  | "AmbientLight"
+  | "DirectionalLight"
+  | "PointLight"
+  | "SpotLight"
+  | "HemisphereLight"
+  | "RectAreaLight"
+  // Camera types
+  | "PerspectiveCamera"
+  | "OrthographicCamera"
+  // Other types
+  | "Line"
+  | "LineSegments"
+  | "Points"
+  | "Bone"
+  | "SkinnedMesh"
+  | "Sprite";
+
+// Geometry primitive types for creating basic shapes
+export type PrimitiveGeometryType = "sphere" | "plane" | "box" | "torus" | "cylinder";
 
 // GLTF-specific data structure
 export interface GLTFData {
@@ -71,7 +97,14 @@ export interface MaterialProperties {
 export interface SceneObject {
   id: string;
   name: string;
-  type: GeometryType;
+  type: ThreeObjectType;  // Three.js object type (Mesh, Group, Light, etc.)
+
+  // For meshes we created, track what primitive geometry was used
+  primitiveType?: PrimitiveGeometryType;
+
+  // For any Three.js object, store a reference to the actual object
+  threeObject?: THREE.Object3D;
+
   displacement?: VertexParams;
   material: MaterialProperties;
   transform: {
@@ -85,7 +118,7 @@ export interface SceneObject {
   parentId: string | null;
   childIds: string[];
   expanded: boolean; // For UI tree view
-  // GLTF-specific data
+  // GLTF-specific data (deprecated - use threeObject instead)
   gltfData?: GLTFData;
 }
 
@@ -98,17 +131,17 @@ export interface SceneState {
 class GeometryCache {
   private cache = new Map<string, THREE.BufferGeometry>();
 
-  getCacheKey(type: GeometryType, subdivisions: number): string {
+  getCacheKey(type: PrimitiveGeometryType, subdivisions: number): string {
     return `${type}-${subdivisions}`;
   }
 
-  get(type: GeometryType, subdivisions: number): THREE.BufferGeometry | null {
+  get(type: PrimitiveGeometryType, subdivisions: number): THREE.BufferGeometry | null {
     const key = this.getCacheKey(type, subdivisions);
     return this.cache.get(key) || null;
   }
 
   set(
-    type: GeometryType,
+    type: PrimitiveGeometryType,
     subdivisions: number,
     geometry: THREE.BufferGeometry
   ): void {
@@ -123,6 +156,62 @@ class GeometryCache {
 }
 
 export const geometryCache = new GeometryCache();
+
+/**
+ * Detect the Three.js type of an object using its type property and boolean flags
+ * This is how Three.js Editor determines object types
+ */
+export function getThreeObjectType(object: THREE.Object3D): ThreeObjectType {
+  // Primary: Use the native type property (most reliable)
+  if (object.type) {
+    return object.type as ThreeObjectType;
+  }
+
+  // Fallback: Use boolean flags (for older Three.js versions or custom objects)
+  if ((object as any).isMesh) return "Mesh";
+  if ((object as any).isGroup) return "Group";
+  if ((object as any).isScene) return "Scene";
+  if ((object as any).isLight) {
+    if ((object as any).isAmbientLight) return "AmbientLight";
+    if ((object as any).isDirectionalLight) return "DirectionalLight";
+    if ((object as any).isPointLight) return "PointLight";
+    if ((object as any).isSpotLight) return "SpotLight";
+    if ((object as any).isHemisphereLight) return "HemisphereLight";
+    if ((object as any).isRectAreaLight) return "RectAreaLight";
+    return "Group"; // Generic light fallback
+  }
+  if ((object as any).isCamera) {
+    if ((object as any).isPerspectiveCamera) return "PerspectiveCamera";
+    if ((object as any).isOrthographicCamera) return "OrthographicCamera";
+    return "PerspectiveCamera"; // Default fallback
+  }
+  if ((object as any).isLine) return "Line";
+  if ((object as any).isLineSegments) return "LineSegments";
+  if ((object as any).isPoints) return "Points";
+  if ((object as any).isBone) return "Bone";
+  if ((object as any).isSkinnedMesh) return "SkinnedMesh";
+  if ((object as any).isSprite) return "Sprite";
+
+  // Ultimate fallback
+  return "Group";
+}
+
+/**
+ * Type guard to check if an object is a specific Three.js type
+ */
+export function isThreeObjectType(
+  object: THREE.Object3D,
+  type: ThreeObjectType
+): boolean {
+  return getThreeObjectType(object) === type;
+}
+
+/**
+ * Check if object is a mesh (supports displacement)
+ */
+export function isMeshObject(object: SceneObject): boolean {
+  return object.type === "Mesh" || object.type === "SkinnedMesh";
+}
 
 // Hierarchical utility functions
 export function getObjectById(
@@ -280,18 +369,19 @@ export function createDefaultVertexParams(): VertexParams {
   };
 }
 
-// Factory function for creating new scene objects
+// Factory function for creating new scene objects from primitives
 export function createSceneObject(
-  type: GeometryType,
+  primitiveType: PrimitiveGeometryType,  // What shape to create
   position: [number, number, number] = [0, 0, 0],
   parentId: string | null = null
 ): SceneObject {
   return {
     id: generateObjectId(),
-    name: `${type.charAt(0).toUpperCase() + type.slice(1)} ${
+    name: `${primitiveType.charAt(0).toUpperCase() + primitiveType.slice(1)} ${
       Date.now() % 1000
     }`,
-    type,
+    type: "Mesh",  // All primitives you create are Meshes
+    primitiveType,  // Remember which primitive was used
     material: createDefaultMaterial(),
     transform: {
       position,
@@ -303,6 +393,66 @@ export function createSceneObject(
     parentId,
     childIds: [],
     expanded: true,
+  };
+}
+
+/**
+ * Create a SceneObject from an existing Three.js Object3D
+ * This is used when loading GLTF files or adding Three.js objects directly
+ */
+export function createSceneObjectFromThree(
+  threeObject: THREE.Object3D,
+  parentId: string | null = null
+): SceneObject {
+  const type = getThreeObjectType(threeObject);
+
+  // Extract transform
+  const position: [number, number, number] = [
+    threeObject.position.x,
+    threeObject.position.y,
+    threeObject.position.z
+  ];
+  const rotation: [number, number, number] = [
+    threeObject.rotation.x,
+    threeObject.rotation.y,
+    threeObject.rotation.z
+  ];
+  const scale: [number, number, number] = [
+    threeObject.scale.x,
+    threeObject.scale.y,
+    threeObject.scale.z
+  ];
+
+  // Extract material properties if it's a mesh
+  let material = createDefaultMaterial();
+  if (threeObject instanceof THREE.Mesh && threeObject.material) {
+    const mat = Array.isArray(threeObject.material)
+      ? threeObject.material[0]
+      : threeObject.material;
+
+    if (mat instanceof THREE.MeshStandardMaterial) {
+      material = {
+        color: '#' + mat.color.getHexString(),
+        roughness: mat.roughness,
+        metalness: mat.metalness,
+        opacity: mat.opacity,
+        emissiveIntensity: mat.emissiveIntensity,
+      };
+    }
+  }
+
+  return {
+    id: generateObjectId(),
+    name: threeObject.name || type,
+    type,
+    threeObject,  // Store reference to original Three.js object
+    material,
+    transform: { position, rotation, scale },
+    visible: threeObject.visible,
+    locked: false,
+    parentId,
+    childIds: [],
+    expanded: false,
   };
 }
 

@@ -46,7 +46,7 @@ import {
 } from "lucide-react";
 import {
   SceneObject,
-  GeometryType,
+  PrimitiveGeometryType,
   createSceneObject,
   getRootObjects,
   getChildren,
@@ -154,9 +154,21 @@ const TreeNode: React.FC<TreeNodeProps> = ({
     }
   };
 
-  const getGeometryIcon = (type: GeometryType) => {
+  const getGeometryIcon = (object: SceneObject) => {
     const iconProps = { className: "w-3.5 h-3.5 flex-shrink-0" };
-    switch (type) {
+
+    // Handle GLTF/imported objects
+    if (object.gltfData || (object.threeObject && !object.primitiveType)) {
+      return (
+        <Box
+          {...iconProps}
+          className="w-3.5 h-3.5 text-orange-400 flex-shrink-0"
+        />
+      );
+    }
+
+    // Handle primitive meshes
+    switch (object.primitiveType) {
       case "sphere":
         return (
           <Circle
@@ -319,7 +331,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
                 <Folder className="w-3.5 h-3.5 text-amber-400" />
               )
             ) : (
-              getGeometryIcon(object.type)
+              getGeometryIcon(object)
             )}
           </div>
 
@@ -505,12 +517,12 @@ export const HierarchyPanel: React.FC<HierarchyPanelProps> = ({
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
 
   const handleAddObject = useCallback(
-    (type: GeometryType, parentId: string | null = null) => {
+    (primitiveType: PrimitiveGeometryType, parentId: string | null = null) => {
       const offset = objects.length * 0.3;
       const position: [number, number, number] = parentId
         ? [0, 0, 0]
         : [offset, 0, 0];
-      const newObject = createSceneObject(type, position, parentId);
+      const newObject = createSceneObject(primitiveType, position, parentId);
       onAdd(newObject);
     },
     [objects.length, onAdd]

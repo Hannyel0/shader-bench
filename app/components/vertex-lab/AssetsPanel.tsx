@@ -34,7 +34,7 @@ import {
   FileCode,
 } from "lucide-react";
 import { GLTFImporter } from "../../utils/GLTFLoader";
-import { createSceneObject, SceneObject } from "./SceneManager";
+import { SceneObject, generateObjectId, createDefaultMaterial } from "./SceneManager";
 
 type ViewMode = "grid" | "list";
 type AssetType = "all" | "texture" | "model" | "material" | "shader";
@@ -249,10 +249,24 @@ export const AssetsPanel: React.FC<AssetsPanelProps> = ({ onAddObject }) => {
         try {
           const gltfData = await gltfImporter.current.loadFromFile(file);
 
-          // Create scene object with GLTF data
-          const object = createSceneObject('gltf', [0, 0, 0]);
-          object.gltfData = gltfData;
-          object.name = file.name.replace(/\.(gltf|glb)$/, '');
+          // Create scene object with GLTF data (using Group type)
+          const object: SceneObject = {
+            id: generateObjectId(),
+            name: file.name.replace(/\.(gltf|glb)$/, ''),
+            type: "Group",  // GLTF models are Groups
+            gltfData,
+            material: createDefaultMaterial(),
+            transform: {
+              position: [0, 0, 0],
+              rotation: [0, 0, 0],
+              scale: [1, 1, 1],
+            },
+            visible: true,
+            locked: false,
+            parentId: null,
+            childIds: [],
+            expanded: false,
+          };
 
           // Notify parent component
           if (onAddObject) {
@@ -297,10 +311,24 @@ export const AssetsPanel: React.FC<AssetsPanelProps> = ({ onAddObject }) => {
         try {
           const gltfData = await gltfImporter.current.loadFromFile(file);
 
-          // Create scene object with GLTF data
-          const object = createSceneObject('gltf', [0, 0, 0]);
-          object.gltfData = gltfData;
-          object.name = file.name.replace(/\.(gltf|glb)$/, '');
+          // Create scene object with GLTF data (using Group type)
+          const object: SceneObject = {
+            id: generateObjectId(),
+            name: file.name.replace(/\.(gltf|glb)$/, ''),
+            type: "Group",  // GLTF models are Groups
+            gltfData,
+            material: createDefaultMaterial(),
+            transform: {
+              position: [0, 0, 0],
+              rotation: [0, 0, 0],
+              scale: [1, 1, 1],
+            },
+            visible: true,
+            locked: false,
+            parentId: null,
+            childIds: [],
+            expanded: false,
+          };
 
           // Notify parent component
           if (onAddObject) {
